@@ -4,9 +4,10 @@ from pathlib import Path
 
 def extract_file_info(file_name: str):
     """
-    Extract the vessel name and dataset type from a CSV file name.
+    Extrait le nom du navire et le type de dataset à partir
+    du nom d'un fichier CSV.
 
-    Example:
+    Exemple :
     "2026-08-25 16_28_15_AAA GPS.csv"
     -> ("AAA", "GPS")
     """
@@ -15,7 +16,7 @@ def extract_file_info(file_name: str):
 
     vessel, dataset_type = info_part.split()
 
-    # Normalize the typo present in one of the provided files.
+    # Corriger la faute présente dans le nom d'un des fichiers fournis.
     if dataset_type == "MASC3":
         dataset_type = "MACS3"
 
@@ -23,28 +24,31 @@ def extract_file_info(file_name: str):
 
 
 def find_files(folder_path: Path):
-    """Return all CSV files found in the given folder."""
+    """
+    Retourne la liste des fichiers CSV présents dans le dossier.
+    """
     return list(folder_path.glob("*.csv"))
 
 
 def clean_timestamps(df: pd.DataFrame, column: str):
     """
-    Convert the timestamp column to datetime, remove invalid timestamps,
-    sort the DataFrame chronologically and reset its index.
+    Convertit la colonne temporelle en datetime, supprime les timestamps
+    invalides, trie les données chronologiquement et réinitialise l'index.
 
-    Returns the cleaned DataFrame and the number of remaining valid rows.
+    Returns:
+        tuple: Le DataFrame nettoyé et le nombre de lignes valides restantes.
     """
     df = df.copy()
 
-    # Invalid timestamps are converted to NaT.
+    # Les timestamps invalides sont convertis en NaT.
     df[column] = pd.to_datetime(df[column], errors="coerce")
 
-    # Remove rows with an invalid timestamp.
+    # Supprimer les lignes dont le timestamp est invalide.
     df = df.dropna(subset=[column])
 
     valid_row_count = len(df)
 
-    # Sort chronologically and rebuild a continuous index.
+    # Trier chronologiquement et reconstruire un index continu.
     df = df.sort_values(column)
     df = df.reset_index(drop=True)
 
@@ -53,8 +57,12 @@ def clean_timestamps(df: pd.DataFrame, column: str):
 
 def validate_position(gps_df: pd.DataFrame):
     """
-    Validate GPS coordinates and determine whether at least one
-    usable position is available.
+    Valide les coordonnées GPS et détermine si au moins
+    une position exploitable est disponible.
+
+    Returns:
+        tuple: Le DataFrame avec les positions invalides neutralisées
+        et un booléen indiquant si une position valide existe.
     """
     gps_df = gps_df.copy()
     position_available = False
@@ -70,7 +78,7 @@ def validate_position(gps_df: pd.DataFrame):
             | (gps_df["Latitude"] > 90)
         )
 
-        # Keep the row but mark invalid coordinates as unavailable.
+        # Conserver la ligne mais rendre indisponibles les coordonnées invalides.
         gps_df.loc[invalid_longitude, "Longitude"] = pd.NA
         gps_df.loc[invalid_latitude, "Latitude"] = pd.NA
 
@@ -90,8 +98,12 @@ def validate_dataset(
     exploitable_data,
 ):
     """
-    Determine whether a dataset contains the minimum required
-    structure and exploitable data.
+    Vérifie qu'un dataset possède la structure minimale attendue
+    et contient au moins une donnée exploitable.
+
+    Returns:
+        tuple: Un booléen indiquant si le dataset est valide
+        et un message décrivant le résultat de la validation.
     """
     if (
         missing_columns == []
@@ -129,7 +141,9 @@ def find_missing_columns(
     df: pd.DataFrame,
     required_columns: list,
 ):
-    """Return required columns that are missing from the DataFrame."""
+    """
+    Retourne les colonnes obligatoires absentes du DataFrame.
+    """
     missing_columns = []
 
     for column in required_columns:
@@ -144,8 +158,8 @@ def check_available_data(
     optional_columns: list,
 ):
     """
-    Return True if at least one available optional column
-    contains a non-null value.
+    Vérifie qu'au moins une colonne optionnelle disponible
+    contient une valeur non nulle.
     """
     available_columns = []
 
@@ -163,22 +177,126 @@ def check_available_data(
     return data_available
 
 
-def normalize_column_names(df: pd.DataFrame):
+def extract_metadata(df: pd.DataFrame):
     """
-    Normalize GPS column names by keeping only their stable
-    business name.
+    Extrait les métadonnées présentes dans les noms de colonnes
+    d'un fichier sans modifier le DataFrame.
 
-    Example:
-    "Course [deg] (NAVIGATION_GPS)" -> "Course"
+    Pour chaque variable, conserve :
+    - le nom brut de la colonne ;
+    - son unité lorsqu'elle existe ;
+    - sa source lorsqu'elle existe.
+
+    Le nom normalisé de la variable est utilisé comme clé.
     """
-    normalized_column_names = []
+    metadata_df = {}
 
     for column in df.columns:
+        metadata_column = {
+            "raw_name": column,
+        }
+
         if "[" in column:
-            column, _ = column.split("[")
+            name, remaining_part = column.split("[", 1)
+            name = name.strip()
 
-        normalized_column_names.append(column.strip())
+            unit, source = remaining_part.split("]", 1)
 
-    df.columns = normalized_column_names
+            unit = unit.strip()
+            source = source.strip()
 
-    return df.columns
+            # "-" indique qu'aucune unité physique n'est définie.
+            if unit == "-":
+                unit = None
+
+            metadata_column["unit"] = unit
+            metadata_column["source"] = source.strip("()")
+
+        else:
+            name = column.strip()
+            metadata_column["unit"] = None
+            metadata_column["source"] = None
+
+        metadata_df[name] = metadata_column
+
+    return metadata_df
+
+
+def summarize_metadata(metadata: dict):
+    """
+    Regroupe les métadonnées de tous les navires par type de dataset.
+
+    Les différentes valeurs observées pour un même champ sont conservées
+    sous forme de listes afin de ne pas perdre les variantes présentes
+    entre les fichiers.
+    """
+    common_metadata = {}
+
+    for vessel in metadata:
+        for dataset_type in metadata[vessel]:
+            dataset_metadata = metadata[vessel][dataset_type]
+
+            # Initialiser le type de dataset lors de sa première occurence.
+            if dataset_type not in common_metadata:
+                common_metadata[dataset_type] = {}
+
+                for variable in dataset_metadata:
+                    common_metadata[dataset_type][variable] = {}
+
+                    initialize_variable_metadata(
+                        dataset_metadata[variable],
+                        common_metadata[dataset_type][variable],
+                    )
+
+            else:
+                for variable in dataset_metadata:
+                    variable_metadata = dataset_metadata[variable]
+
+                    if variable in common_metadata[dataset_type]:
+                        common_variable_metadata = (
+                            common_metadata[dataset_type][variable]
+                        )
+
+                        # Ajouter uniquement les nouvelles variantes observées.
+                        for metadata_field in variable_metadata:
+                            field_value = variable_metadata[metadata_field]
+
+                            if (
+                                field_value is not None
+                                and field_value
+                                not in common_variable_metadata[metadata_field]
+                            ):
+                                common_variable_metadata[
+                                    metadata_field
+                                ].append(field_value)
+
+                    else:
+                        # Initialiser une variable absente du schéma commun.
+                        common_metadata[dataset_type][variable] = {}
+
+                        initialize_variable_metadata(
+                            variable_metadata,
+                            common_metadata[dataset_type][variable],
+                        )
+
+    return common_metadata
+
+
+def initialize_variable_metadata(
+    variable_metadata: dict,
+    common_variable_metadata: dict,
+    ):
+    """
+    Initialise les métadonnées communes d'une variable.
+
+    Chaque valeur observée est placée dans une liste afin de permettre
+    l'ajout ultérieur de variantes provenant d'autres fichiers.
+    Les valeurs None ne sont pas considérées comme des variantes.
+    """
+    for field in variable_metadata:
+        common_variable_metadata[field] = []
+
+        if variable_metadata[field] is not None:
+            common_variable_metadata[field].append(
+                variable_metadata[field]
+            )
