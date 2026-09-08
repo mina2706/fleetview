@@ -16,7 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from fleet import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("api/vessels/", views.vessels, name = "vessels"),
+    path("api/variables/", views.variables, name = "variables"),
+    path ("api/data/", views.data, name = "data")
 ]
