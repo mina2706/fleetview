@@ -1,0 +1,62 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FleetView</title>
+
+        <!-- Leaflet CSS -->
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        />
+
+        <style>
+            #map {
+                height: 500px;
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <h1>FleetView</h1>
+
+        <!-- Sélection des navires -->
+        <label for="vessels">Select vessels</label>
+        <select id="vessels" multiple></select>
+
+        <!-- Sélection de la période -->
+        <label for="start-date">Start date</label>
+        <input
+            type="date"
+            id="start-date"
+            value="2026-04-01"
+        >
+
+        <label for="end-date">End date</label>
+        <input
+            type="date"
+            id="end-date"
+            value="2026-04-01"
+        >
+
+        <!-- Sélection des variables -->
+        <label for="variables">Select variables</label>
+        <select id="variables" multiple></select>
+
+        <!-- Lancer la recherche -->
+        <button id="find">Find</button>
+
+        <!-- Messages et avertissements -->
+        <div id="messages"></div>
+
+        <!-- Carte -->
+        <div id="map"></div>
+
+        <!-- JavaScript -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="{% static 'fleet/js/app.js' %}"></script>
+
+    </body>
+</html>

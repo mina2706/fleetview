@@ -22,5 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("api/vessels/", views.vessels, name = "vessels"),
     path("api/variables/", views.variables, name = "variables"),
-    path ("api/data/", views.data, name = "data")
+    path ("api/data/", views.data, name = "data"),
+    path("api/index/", views.index, name = "index")
 ]

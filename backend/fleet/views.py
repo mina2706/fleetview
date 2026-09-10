@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.apps import apps
+from django.shortcuts import render
 import pandas as pd
 
 
@@ -30,7 +31,7 @@ def variables(request):
             └── source
     """
     return JsonResponse({
-        "variables with metadata": fleet_config.common_metadata
+        "variables": fleet_config.common_metadata
     })
 
 
@@ -99,7 +100,7 @@ def data(request):
         return JsonResponse(
             {
                 "error":
-                "period not valid, start_date is after end_date"
+                "period not valid, start date is after end date"
             },
             status=400
         )
@@ -274,3 +275,6 @@ def data(request):
             "not_available_variables": not_availables_variables
         }
     })
+
+def index(request):
+    return render (request , "fleet/index.html")
