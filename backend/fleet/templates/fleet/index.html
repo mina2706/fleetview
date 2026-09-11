@@ -1,15 +1,22 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
     <head>
+        <meta charset="UTF-8">
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        >
+
         <title>FleetView</title>
 
         <!-- Leaflet CSS -->
         <link
             rel="stylesheet"
             href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        />
+        >
 
         <style>
             #map {
@@ -18,13 +25,16 @@
         </style>
     </head>
 
+
     <body>
 
         <h1>FleetView</h1>
 
+
         <!-- Sélection des navires -->
         <label for="vessels">Select vessels</label>
         <select id="vessels" multiple></select>
+
 
         <!-- Sélection de la période -->
         <label for="start-date">Start date</label>
@@ -41,18 +51,46 @@
             value="2026-04-01"
         >
 
+
         <!-- Sélection des variables -->
         <label for="variables">Select variables</label>
         <select id="variables" multiple></select>
 
+
+        <!-- Colorimétrie de la trajectoire -->
+        <label for="color-variable">
+            Select a variable for trajectory coloring
+        </label>
+        <select id="color-variable"></select>
+
+        <label for="reference-value">Add a reference value</label>
+        <input
+            type="number"
+            id="reference-value"
+            step="any"
+            value="20"
+        >
+
+        <label for="tolerance-value">Add a tolerance value</label>
+        <input
+            type="number"
+            id="tolerance-value"
+            step="any"
+            value="5"
+        >
+
+
         <!-- Lancer la recherche -->
         <button id="find">Find</button>
+
 
         <!-- Messages et avertissements -->
         <div id="messages"></div>
 
+
         <!-- Carte -->
         <div id="map"></div>
+
 
         <!-- JavaScript -->
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
