@@ -216,33 +216,38 @@ def data(request):
     # ---------------------------------------------------------
 
     """
-    Structure finale :
+        Structure finale :
 
-    response
-    └── vessel
-        └── dataset_type
-            └── liste de records JSON
+        response
+        └── vessel
+            └── dataset_type
+                └── liste de records JSON
 
-    Exemple :
-    {
-        "AAA": {
-            "GPS": [...],
-            "MOTIONS": [...]
+        Exemple :
+        {
+            "AAA": {
+                "GPS": [...],
+                "MOTIONS": [...]
+            }
         }
-    }
 
-    Chaque DataFrame est :
-    1. filtré selon la période ;
-    2. réduit aux colonnes déterminées précédemment ;
-    3. converti en liste de dictionnaires pour être sérialisable en JSON.
+        Chaque DataFrame est :
+        1. filtré selon la période ;
+        2. réduit aux colonnes déterminées précédemment ;
+        3. préparé pour la sérialisation JSON ;
+        4. converti en liste de dictionnaires.
 
-    Les datasets qui ne contiennent que ["Timestamp"] sont ignorés :
-    cela signifie qu'aucune donnée utile de ce dataset n'a été demandée.
+        Les datasets qui ne contiennent que ["Timestamp"] sont ignorés :
+        cela signifie qu'aucune donnée utile de ce dataset n'a été demandée.
 
-    GPS reste néanmoins présent sans variable supplémentaire puisque
-    Longitude et Latitude ont été ajoutées dès l'initialisation.
+        GPS reste néanmoins présent sans variable supplémentaire puisque
+        Longitude et Latitude ont été ajoutées dès l'initialisation.
+
+        Les valeurs manquantes numériques sont représentées par pandas sous
+        forme de NaN. Comme NaN n'est pas une valeur JSON valide, le DataFrame
+        est converti en type object afin de pouvoir remplacer les NaN par None.
+        JsonResponse convertira ensuite automatiquement les None en null.
     """
-
     response_data = {}
 
     for vessel in availables_variables:
@@ -257,13 +262,14 @@ def data(request):
                 & (dataframe["Timestamp"].dt.date <= end_date)
             ]
 
+            # Sélectionner uniquement les colonnes à retourner pour ce navire et ce dataset.
+            json_ready_df = filtered_df[availables_variables[vessel][dataset_type]]            
+
             if availables_variables[vessel][dataset_type] != ["Timestamp"]:
-                response_data[vessel][dataset_type] = (
-                    filtered_df[
-                        availables_variables[vessel][dataset_type]
-                    ]
-                    .to_dict(orient="records")
-                )
+                # Remplacer les NaN pandas par None avant la sérialisation JSON.
+                json_ready_df =json_ready_df.astype(object).where(json_ready_df.notna(),None)
+                response_data[vessel][dataset_type] = json_ready_df.to_dict(orient="records")            
+                               
 
     # Les problèmes partiels ne bloquent pas la réponse :
     # les données valides sont renvoyées avec les warnings correspondants.
