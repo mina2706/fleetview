@@ -68,11 +68,14 @@ async function loadVessels() {
 // Cette structure permet ensuite de retrouver le dataset
 // auquel appartient la variable choisie pour la colorimétrie.
 let variablesByType = {};
+let variablesMetadata = {};
 
 // Alimenter le sélecteur de variables avec les données réelles
 async function loadVariables() {
     let variablesResponse = await fetch("/api/variables/");
     let variablesResult = await variablesResponse.json();
+
+    variablesMetadata = variablesResult["variables"];
 
     let datasetTypes = Object.keys(variablesResult["variables"]);
 
@@ -137,7 +140,12 @@ findButton.addEventListener("click", async () => {
     }
 
     messagesDiv.textContent = JSON.stringify(result.warnings);
+    if (selectedVariables.length === 0){
 
+    }else if (selectedVariables.length === 1){
+        displayChartOneVariable(result, selectedVessels, selectedVariables[0], variablesMetadata, variablesByType)
+        }
+    
     // -------------------- Colorimétrie demandée --------------------
 
     let variablePilot = colorVariableSelect.value;
