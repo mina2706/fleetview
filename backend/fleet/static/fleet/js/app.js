@@ -11,6 +11,9 @@ let colorVariableSelect = document.getElementById("color-variable");
 let referenceInput = document.getElementById("reference-value");
 let toleranceInput = document.getElementById("tolerance-value");
 
+let chartViewSelect = document.getElementById("chart-view");
+
+
 // Associer une couleur différente à chaque navire.
 let vesselColors = {
     "AAA": "blue",
@@ -64,11 +67,18 @@ async function loadVessels() {
     });
 }
 
+
 // Conserver les variables regroupées par dataset.
 // Cette structure permet ensuite de retrouver le dataset
-// auquel appartient la variable choisie pour la colorimétrie.
+// auquel appartient une variable sélectionnée.
 let variablesByType = {};
+
+
+// Conserver les métadonnées complètes des variables.
+// Elles sont notamment utilisées par les graphes pour récupérer
+// les unités, les sources et déterminer le regroupement des axes Y.
 let variablesMetadata = {};
+
 
 // Alimenter le sélecteur de variables avec les données réelles
 async function loadVariables() {
@@ -93,6 +103,7 @@ async function loadVariables() {
     });
 }
 
+
 document.addEventListener("DOMContentLoaded", () => {
     loadVessels();
     loadVariables();
@@ -106,12 +117,14 @@ findButton.addEventListener("click", async () => {
     // Supprimer les résultats de la recherche précédente
     resultLayers.clearLayers();
 
+
     // -------------------- Entrées utilisateur --------------------
 
     let selectedVessels = Array.from(vesselSelect.selectedOptions).map(option => option.value);
     let selectedStartDate = startDateInput.value;
     let selectedEndDate = endDateInput.value;
     let selectedVariables = Array.from(variableSelect.selectedOptions).map(option => option.value);
+
 
     // -------------------- Requête HTTP --------------------
 
@@ -132,6 +145,7 @@ findButton.addEventListener("click", async () => {
     let response = await fetch(requestURL);
     let result = await response.json();
 
+
     // -------------------- Gestion des erreurs --------------------
 
     if (response.ok === false) {
@@ -140,12 +154,99 @@ findButton.addEventListener("click", async () => {
     }
 
     messagesDiv.textContent = JSON.stringify(result.warnings);
-    if (selectedVariables.length === 0){
 
-    }else if (selectedVariables.length === 1){
-        displayChartOneVariable(result, selectedVessels, selectedVariables[0], variablesMetadata, variablesByType)
+
+    // -------------------- Affichage des graphes --------------------
+
+    /*
+     * Supprimer les graphes issus de la recherche précédente.
+     *
+     * Cette opération est réalisée une seule fois ici et non dans
+     * les fonctions de charts.js, car une même recherche peut créer
+     * plusieurs canvas lorsque plusieurs variables et plusieurs
+     * navires sont sélectionnés.
+     */
+    chartDiv.replaceChildren();
+
+
+    if (selectedVariables.length === 1) {
+
+        /*
+         * Une seule variable :
+         * créer un graphe contenant une courbe par navire sélectionné.
+         */
+        displayChartOneVariable(
+            result,
+            selectedVessels,
+            selectedVariables[0],
+            variablesMetadata,
+            variablesByType
+        );
+
+    } else if (
+        selectedVariables.length > 1 &&
+        selectedVessels.length === 1
+    ) {
+
+        /*
+         * Plusieurs variables et un seul navire :
+         * afficher les variables sur un même graphe.
+         *
+         * Les variables compatibles peuvent partager le même axe Y
+         * selon la logique définie dans charts.js.
+         */
+        displayChartOneVessel(
+            result,
+            selectedVessels[0],
+            selectedVariables,
+            variablesMetadata,
+            variablesByType
+        );
+
+    } else if (
+        selectedVariables.length > 1 &&
+        selectedVessels.length > 1
+    ) {
+
+        /*
+         * Plusieurs variables et plusieurs navires :
+         * l'utilisateur choisit la manière d'organiser les graphes.
+         *
+         * Vue "variable" :
+         *     un canvas par variable,
+         *     avec une courbe par navire.
+         *
+         * Vue "vessel" :
+         *     un canvas par navire,
+         *     avec une courbe par variable.
+         */
+        if (chartViewSelect.value === "variable") {
+
+            selectedVariables.forEach(variable => {
+                displayChartOneVariable(
+                    result,
+                    selectedVessels,
+                    variable,
+                    variablesMetadata,
+                    variablesByType
+                );
+            });
+
+        } else if (chartViewSelect.value === "vessel") {
+
+            selectedVessels.forEach(vessel => {
+                displayChartOneVessel(
+                    result,
+                    vessel,
+                    selectedVariables,
+                    variablesMetadata,
+                    variablesByType
+                );
+            });
         }
-    
+    }
+
+
     // -------------------- Colorimétrie demandée --------------------
 
     let variablePilot = colorVariableSelect.value;
@@ -179,6 +280,7 @@ findButton.addEventListener("click", async () => {
         });
     }
 
+
     // -------------------- Affichage des navires --------------------
 
     let allPositions = [];
@@ -186,6 +288,7 @@ findButton.addEventListener("click", async () => {
     selectedVessels.forEach(vessel => {
         let gpsRows = result["response"][vessel]["GPS"];
         let gpsPositions = gpsRows.map(row => [row.Latitude, row.Longitude]);
+
 
         // -------------------- Préparation de la colorimétrie --------------------
 
@@ -232,6 +335,7 @@ findButton.addEventListener("click", async () => {
                     }
                 });
 
+
                 // Déterminer le statut de chaque valeur pilote.
                 pilotValues.forEach(pilotValue => {
                     let status = null;
@@ -253,6 +357,7 @@ findButton.addEventListener("click", async () => {
                 });
             }
         }
+
 
         // -------------------- Tracé de la trajectoire --------------------
 
@@ -279,11 +384,13 @@ findButton.addEventListener("click", async () => {
             let startPosition = [gpsPositions[i][0], gpsPositions[i][1]];
             let endPosition = [gpsPositions[i + 1][0], gpsPositions[i + 1][1]];
 
+
             // Ne pas tracer un segment si une de ses deux positions GPS est absente.
             if (
                 startPosition[0] !== null && startPosition[1] !== null &&
                 endPosition[0] !== null && endPosition[1] !== null
             ) {
+
 
                 // -------------------- Passage de l'antiméridien --------------------
 
@@ -339,6 +446,7 @@ findButton.addEventListener("click", async () => {
                  */
                 L.polyline(segment, { color: vesselColors[vessel] }).addTo(resultLayers);
 
+
                 // -------------------- Surcouche colorimétrique --------------------
 
                 /*
@@ -364,6 +472,7 @@ findButton.addEventListener("click", async () => {
             }
         }
 
+
         // -------------------- Fin du tracé du navire --------------------
 
         // Conserver les coordonnées GPS originales
@@ -373,6 +482,7 @@ findButton.addEventListener("click", async () => {
                 allPositions.push(gpsPositions[i]);
             }
         }
+
 
         // Ajouter un marqueur sur la premiére position connue.
         let firstPosition = gpsPositions[0];
@@ -400,6 +510,7 @@ findButton.addEventListener("click", async () => {
 
         L.marker(firstPosition, { icon: departureIcon }).addTo(resultLayers);
 
+
         // Ajouter un marqueur sur la dernière position connue.
         let lastPosition = gpsPositions[gpsPositions.length - 1];
 
@@ -422,9 +533,11 @@ findButton.addEventListener("click", async () => {
 
         let vesselMarker = L.marker(lastPosition, { icon: vesselIcon }).addTo(resultLayers);
 
+
         // Afficher le nom du navire au survol de son marqueur.
         vesselMarker.bindTooltip(vessel, { permanent: false, direction: "top" });
     });
+
 
     // -------------------- Cadrage de la carte --------------------
 

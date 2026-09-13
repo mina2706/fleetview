@@ -80,6 +80,15 @@
         >
 
 
+        <!-- Choix du mode d'affichage lorsque plusieurs variables
+             et plusieurs navires sont sélectionnés -->
+        <label for="chart-view">Chart view:</label>
+        <select id="chart-view">
+            <option value="variable">By variable</option>
+            <option value="vessel">By vessel</option>
+        </select>
+
+
         <!-- Lancer la recherche -->
         <button id="find">Find</button>
 
@@ -91,15 +100,22 @@
         <!-- Carte -->
         <div id="map"></div>
 
-        <!-- Graphe -->
+
+        <!-- Graphes -->
         <div id="charts"></div>
 
-        <!-- JavaScript -->
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+        <!-- Bibliothèques JavaScript -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+        <!-- Adaptateur nécessaire à Chart.js pour utiliser une échelle temporelle -->
         <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
+
+        <!-- Scripts de l'application.
+             charts.js est chargé avant app.js car app.js appelle
+             les fonctions d'affichage définies dans charts.js. -->
         <script src="{% static 'fleet/js/charts.js' %}"></script>
         <script src="{% static 'fleet/js/app.js' %}"></script>
 
