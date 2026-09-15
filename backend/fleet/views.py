@@ -216,46 +216,67 @@ def data(request):
     # ---------------------------------------------------------
 
     """
-        Structure finale :
+    Structure finale :
 
-        response
+    result
+    ├── response
+    │   └── vessel
+    │       └── dataset_type
+    │           └── liste de records JSON
+    │
+    └── replay_context
         └── vessel
-            └── dataset_type
-                └── liste de records JSON
+            └── historique MACS3 complet
 
-        Exemple :
-        {
-            "AAA": {
-                "GPS": [...],
-                "MOTIONS": [...]
-            }
+    response contient les données filtrées selon la période demandée.
+    replay_context conserve l'historique MACS3 complet de chaque navire
+    afin de pouvoir retrouver, pendant le replay, le dernier état MACS3
+    connu avant ou à l'instant courant.
+
+    Exemple de response :
+    {
+        "AAA": {
+            "GPS": [...],
+            "MOTIONS": [...]
         }
+    }
 
-        Chaque DataFrame est :
-        1. filtré selon la période ;
-        2. réduit aux colonnes déterminées précédemment ;
-        3. préparé pour la sérialisation JSON ;
-        4. converti en liste de dictionnaires.
+    Chaque DataFrame retourné dans response est :
+    1. filtré selon la période ;
+    2. réduit aux colonnes déterminées précédemment ;
+    3. préparé pour la sérialisation JSON ;
+    4. converti en liste de dictionnaires.
 
-        Les datasets qui ne contiennent que ["Timestamp"] sont ignorés :
-        cela signifie qu'aucune donnée utile de ce dataset n'a été demandée.
+    Les datasets qui ne contiennent que ["Timestamp"] sont ignorés :
+    cela signifie qu'aucune donnée utile de ce dataset n'a été demandée.
 
-        GPS reste néanmoins présent sans variable supplémentaire puisque
-        Longitude et Latitude ont été ajoutées dès l'initialisation.
+    GPS reste néanmoins présent sans variable supplémentaire puisque
+    Longitude et Latitude ont été ajoutées dès l'initialisation.
 
-        Les valeurs manquantes numériques sont représentées par pandas sous
-        forme de NaN. Comme NaN n'est pas une valeur JSON valide, le DataFrame
-        est converti en type object afin de pouvoir remplacer les NaN par None.
-        JsonResponse convertira ensuite automatiquement les None en null.
+    Les valeurs manquantes numériques sont représentées par pandas sous
+    forme de NaN. Comme NaN n'est pas une valeur JSON valide, le DataFrame
+    est converti en type object afin de pouvoir remplacer les NaN par None.
+    JsonResponse convertira ensuite automatiquement les None en null.
     """
+
     response_data = {}
+    replay_context = {}
 
     for vessel in availables_variables:
         response_data[vessel] = {}
+        replay_context[vessel] = []
 
         for dataset_type in availables_variables[vessel]:
-
             dataframe = fleet_config.data[vessel][dataset_type]
+
+            # Pour le replay, MACS3 doit conserver son historique complet :
+            # un état reste valable jusqu'à l'arrivée du snapshot suivant.
+            if dataset_type == "MACS3":
+                macs3_df = dataframe.astype(object).where(
+                    dataframe.notna(),
+                    None
+                )
+                replay_context[vessel] = macs3_df.to_dict(orient="records")
 
             filtered_df = dataframe.loc[
                 (dataframe["Timestamp"].dt.date >= start_date)
@@ -263,18 +284,25 @@ def data(request):
             ]
 
             # Sélectionner uniquement les colonnes à retourner pour ce navire et ce dataset.
-            json_ready_df = filtered_df[availables_variables[vessel][dataset_type]]            
+            json_ready_df = filtered_df[
+                availables_variables[vessel][dataset_type]
+            ]
 
             if availables_variables[vessel][dataset_type] != ["Timestamp"]:
                 # Remplacer les NaN pandas par None avant la sérialisation JSON.
-                json_ready_df =json_ready_df.astype(object).where(json_ready_df.notna(),None)
-                response_data[vessel][dataset_type] = json_ready_df.to_dict(orient="records")            
-                               
+                json_ready_df = json_ready_df.astype(object).where(
+                    json_ready_df.notna(),
+                    None
+                )
+                response_data[vessel][dataset_type] = json_ready_df.to_dict(
+                    orient="records"
+                )
 
     # Les problèmes partiels ne bloquent pas la réponse :
     # les données valides sont renvoyées avec les warnings correspondants.
     return JsonResponse({
         "response": response_data,
+        "replay_context": replay_context,
         "warnings": {
             "unknown_vessels": unknown_vessels,
             "unknown_variables": unknown_variables,
@@ -282,5 +310,6 @@ def data(request):
         }
     })
 
+
 def index(request):
-    return render (request , "fleet/index.html")
+    return render(request, "fleet/index.html")

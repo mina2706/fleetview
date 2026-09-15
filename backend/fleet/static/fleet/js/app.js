@@ -13,6 +13,8 @@ let toleranceInput = document.getElementById("tolerance-value");
 
 let chartViewSelect = document.getElementById("chart-view");
 
+let replayButton = document.getElementById("replay");
+
 
 // Associer une couleur différente à chaque navire.
 let vesselColors = {
@@ -112,6 +114,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // -------------------- Recherche --------------------
 
+/*
+ * Les informations de la recherche sont déclarées en dehors
+ * du gestionnaire du bouton Find.
+ *
+ * Elles doivent rester accessibles après la requête afin que replay.js
+ * puisse réutiliser les données retournées ainsi que les choix
+ * de l'utilisateur :
+ *
+ * - navires sélectionnés ;
+ * - période sélectionnée ;
+ * - variables sélectionnées.
+ */
+let result;
+let selectedVessels;
+let selectedStartDate;
+let selectedEndDate;
+let selectedVariables;
+
+/*
+ * Associer chaque navire à son marqueur Leaflet.
+ *
+ * Le marqueur est créé pendant l'affichage des résultats du Find,
+ * puis réutilisé par replay.js afin de représenter la position
+ * du navire à l'instant courant du replay.
+ */
+let vesselsMarkers = {};
+
 findButton.addEventListener("click", async () => {
 
     // Supprimer les résultats de la recherche précédente
@@ -120,12 +149,11 @@ findButton.addEventListener("click", async () => {
 
     // -------------------- Entrées utilisateur --------------------
 
-    let selectedVessels = Array.from(vesselSelect.selectedOptions).map(option => option.value);
-    let selectedStartDate = startDateInput.value;
-    let selectedEndDate = endDateInput.value;
-    let selectedVariables = Array.from(variableSelect.selectedOptions).map(option => option.value);
-
-
+    selectedVessels = Array.from(vesselSelect.selectedOptions).map(option => option.value);
+    selectedStartDate = startDateInput.value;
+    selectedEndDate = endDateInput.value;
+    selectedVariables = Array.from(variableSelect.selectedOptions).map(option => option.value);
+    
     // -------------------- Requête HTTP --------------------
 
     let params = new URLSearchParams();
@@ -143,7 +171,8 @@ findButton.addEventListener("click", async () => {
 
     let requestURL = "/api/data/?" + params.toString();
     let response = await fetch(requestURL);
-    let result = await response.json();
+    result = await response.json();
+  
 
 
     // -------------------- Gestion des erreurs --------------------
@@ -245,7 +274,6 @@ findButton.addEventListener("click", async () => {
             });
         }
     }
-
 
     // -------------------- Colorimétrie demandée --------------------
 
@@ -512,6 +540,8 @@ findButton.addEventListener("click", async () => {
 
 
         // Ajouter un marqueur sur la dernière position connue.
+        // Ce même marqueur est ensuite réutilisé pendant le replay
+        // pour représenter la position du navire à l'instant courant.
         let lastPosition = gpsPositions[gpsPositions.length - 1];
 
         // Remplacer le marqueur Leaflet par défaut par une icône de navire personnalisée
@@ -531,11 +561,11 @@ findButton.addEventListener("click", async () => {
             iconAnchor: [15, 15]
         });
 
-        let vesselMarker = L.marker(lastPosition, { icon: vesselIcon }).addTo(resultLayers);
+        vesselsMarkers[vessel] = L.marker(lastPosition, { icon: vesselIcon }).addTo(resultLayers);
 
 
         // Afficher le nom du navire au survol de son marqueur.
-        vesselMarker.bindTooltip(vessel, { permanent: false, direction: "top" });
+        vesselsMarkers[vessel].bindTooltip(vessel, { permanent: false, direction: "top" });
     });
 
 
@@ -543,7 +573,6 @@ findButton.addEventListener("click", async () => {
 
     map.fitBounds(allPositions, { maxZoom: 10 });
 });
-
 
 // -------------------- Sélecteur de colorimétrie --------------------
 
@@ -578,4 +607,35 @@ variableSelect.addEventListener("change", () => {
             colorVariableSelect.appendChild(option);
         }
     });
+});
+
+
+// --------------------------- Replay ----------------------------
+
+/*
+ * Timeline utilisée par le replay.
+ *
+ * Elle est reconstruite lorsqu'un nouveau replay est demandé
+ * à partir de la période sélectionnée lors du dernier Find.
+ *
+ * La timeline progresse par pas réguliers de 15 minutes,
+ * indépendamment des timestamps réellement présents dans les données.
+ * replay.js recherche ensuite l'état disponible de chaque navire
+ * pour chacun de ces instants.
+ */
+let replayTimeline;
+
+replayButton.addEventListener("click", () => {
+
+    /*
+     * Un nouveau replay doit toujours repartir du premier instant
+     * de la timeline, même si le replay précédent avait déjà avancé.
+     */
+    i = 0;
+
+    // Construire la timeline correspondant à toute la période sélectionnée.
+    replayTimeline = createReplayTimeline(
+        selectedStartDate,
+        selectedEndDate
+    );
 });

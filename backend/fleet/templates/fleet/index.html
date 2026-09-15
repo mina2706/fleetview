@@ -92,6 +92,10 @@
         <!-- Lancer la recherche -->
         <button id="find">Find</button>
 
+        <!-- Préparer un nouveau replay à partir
+             de la dernière recherche effectuée -->
+        <button id="replay">Replay</button>
+
 
         <!-- Messages et avertissements -->
         <div id="messages"></div>
@@ -99,6 +103,13 @@
 
         <!-- Carte -->
         <div id="map"></div>
+
+
+        <!-- Contrôles du replay.
+             Play lance ou reprend la progression temporelle.
+             Pause interrompt le replay sans perdre l'instant courant. -->
+        <button id="replay-play">Play</button>
+        <button id="replay-pause">Pause</button>
 
 
         <!-- Graphes -->
@@ -115,8 +126,17 @@
 
         <!-- Scripts de l'application.
              charts.js est chargé avant app.js car app.js appelle
-             les fonctions d'affichage définies dans charts.js. -->
+             les fonctions d'affichage définies dans charts.js.
+
+             replay.js est également chargé avant app.js car app.js
+             utilise createReplayTimeline() et réinitialise l'index i
+             lorsqu'un nouveau replay est demandé.
+
+             Les variables de la dernière recherche déclarées dans app.js
+             seront ensuite utilisées par replay.js au moment où
+             l'utilisateur déclenche Play. -->
         <script src="{% static 'fleet/js/charts.js' %}"></script>
+        <script src="{% static 'fleet/js/replay.js' %}"></script>
         <script src="{% static 'fleet/js/app.js' %}"></script>
 
     </body>
