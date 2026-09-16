@@ -1,10 +1,16 @@
 // -------------------- Éléments HTML --------------------
 
 let findButton = document.getElementById("find");
-let vesselSelect = document.getElementById("vessels");
+
+let vesselOptions = document.getElementById("vessel-options");
+let vesselDropdown = document.getElementById("vessels-dropdown");
+
 let startDateInput = document.getElementById("start-date");
 let endDateInput = document.getElementById("end-date");
-let variableSelect = document.getElementById("variables");
+
+let variableOptions = document.getElementById("variable-options");
+let variablesDropdown = document.getElementById("variables-dropdown");
+
 let messagesDiv = document.getElementById("messages");
 
 let colorVariableSelect = document.getElementById("color-variable");
@@ -16,20 +22,29 @@ let chartViewSelect = document.getElementById("chart-view");
 let replayButton = document.getElementById("replay");
 
 
-
-
 // -------------------- Chargement des sélecteurs --------------------
 
-// Alimenter le sélecteur de navires avec les données réelles
+// Alimenter le sélecteur de navires avec les données réelles.
 async function loadVessels() {
     let vesselsResponse = await fetch("/api/vessels/");
     let vesselsResult = await vesselsResponse.json();
 
     vesselsResult.vessels.forEach(vessel => {
-        let option = document.createElement("option");
-        option.value = vessel;
-        option.textContent = vessel;
-        vesselSelect.appendChild(option);
+        let vesselOption = document.createElement("div");
+
+        let checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = vessel;
+        checkbox.id = `vessel-${vessel}`;
+
+        let label = document.createElement("label");
+        label.textContent = vessel;
+        label.htmlFor = checkbox.id;
+
+        vesselOption.appendChild(checkbox);
+        vesselOption.appendChild(label);
+
+        vesselOptions.appendChild(vesselOption);
     });
 }
 
@@ -46,7 +61,7 @@ let variablesByType = {};
 let variablesMetadata = {};
 
 
-// Alimenter le sélecteur de variables avec les données réelles
+// Alimenter le sélecteur de variables avec les données réelles.
 async function loadVariables() {
     let variablesResponse = await fetch("/api/variables/");
     let variablesResult = await variablesResponse.json();
@@ -56,16 +71,43 @@ async function loadVariables() {
     let datasetTypes = Object.keys(variablesResult["variables"]);
 
     datasetTypes.forEach(type => {
-        variablesByType[type] = Object.keys(variablesResult["variables"][type]);
+        variablesByType[type] = Object.keys(
+            variablesResult["variables"][type]
+        );
+
+        // Créer un groupe pour chaque dataset : GPS, MOTIONS, MACS3...
+        let variableType = document.createElement("div");
+
+        let typeLabel = document.createElement("div");
+        typeLabel.textContent = type;
+
+        variableType.appendChild(typeLabel);
 
         variablesByType[type].forEach(variable => {
-            if (variable !== "Timestamp" && variable !== "Longitude" && variable !== "Latitude") {
-                let option = document.createElement("option");
-                option.value = variable;
-                option.textContent = variable;
-                variableSelect.appendChild(option);
+            if (
+                variable !== "Timestamp" &&
+                variable !== "Latitude" &&
+                variable !== "Longitude"
+            ) {
+                let variableOption = document.createElement("div");
+
+                let checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.value = variable;
+                checkbox.id = `variable-${variable}`;
+
+                let label = document.createElement("label");
+                label.textContent = variable;
+                label.htmlFor = checkbox.id;
+
+                variableOption.appendChild(checkbox);
+                variableOption.appendChild(label);
+
+                variableType.appendChild(variableOption);
             }
         });
+
+        variableOptions.appendChild(variableType);
     });
 }
 
@@ -97,21 +139,31 @@ let selectedEndDate;
 let selectedVariables;
 
 
-
-
 findButton.addEventListener("click", async () => {
 
-    // Supprimer les résultats de la recherche précédente et nettoyer la carte 
+    // Supprimer les résultats de la recherche précédente
+    // et nettoyer la carte.
     clearMap();
 
 
     // -------------------- Entrées utilisateur --------------------
 
-    selectedVessels = Array.from(vesselSelect.selectedOptions).map(option => option.value);
+    selectedVessels = Array.from(
+        vesselOptions.querySelectorAll(
+            'input[type="checkbox"]:checked'
+        )
+    ).map(checkbox => checkbox.value);
+
     selectedStartDate = startDateInput.value;
     selectedEndDate = endDateInput.value;
-    selectedVariables = Array.from(variableSelect.selectedOptions).map(option => option.value);
-    
+
+    selectedVariables = Array.from(
+        variableOptions.querySelectorAll(
+            'input[type="checkbox"]:checked'
+        )
+    ).map(checkbox => checkbox.value);
+
+
     // -------------------- Requête HTTP --------------------
 
     let params = new URLSearchParams();
@@ -128,9 +180,9 @@ findButton.addEventListener("click", async () => {
     params.append("end_date", selectedEndDate);
 
     let requestURL = "/api/data/?" + params.toString();
+
     let response = await fetch(requestURL);
     result = await response.json();
-  
 
 
     // -------------------- Gestion des erreurs --------------------
@@ -233,12 +285,13 @@ findButton.addEventListener("click", async () => {
         }
     }
 
-    // -------------------- Colorimétrie demandée --------------------
+
+    // -------------------- Paramètres de colorimétrie --------------------
 
     let variablePilot = colorVariableSelect.value;
 
     /*
-     * Les valeurs des inputs sont d'abord conservées sous forme de chaînes.
+     * Les valeurs des inputs sont conservées sous forme de chaînes.
      *
      * Cela permet de distinguer :
      *
@@ -249,15 +302,27 @@ findButton.addEventListener("click", async () => {
     let addedToleranceValue = toleranceInput.value;
 
 
-    displayMap(result, selectedVessels, variablePilot,addedReferenceValue,addedToleranceValue,variablesByType) 
-    
-    
+    // -------------------- Affichage de la carte --------------------
+
+    displayMap(
+        result,
+        selectedVessels,
+        variablePilot,
+        addedReferenceValue,
+        addedToleranceValue,
+        variablesByType
+    );
 });
+
 
 // -------------------- Sélecteur de colorimétrie --------------------
 
-variableSelect.addEventListener("change", () => {
-    let selectedVariables = Array.from(variableSelect.selectedOptions).map(option => option.value);
+variableOptions.addEventListener("change", () => {
+    selectedVariables = Array.from(
+        variableOptions.querySelectorAll(
+            'input[type="checkbox"]:checked'
+        )
+    ).map(checkbox => checkbox.value);
 
     /*
      * Vider la liste avant de la reconstruire.
@@ -282,15 +347,35 @@ variableSelect.addEventListener("change", () => {
          */
         if (!variablesByType["MACS3"].includes(variable)) {
             let option = document.createElement("option");
+
             option.value = variable;
             option.textContent = variable;
+
             colorVariableSelect.appendChild(option);
         }
     });
 });
 
 
-// --------------------------- Replay ----------------------------
+// -------------------- Fermeture des menus déroulants --------------------
+
+/*
+ * Fermer les menus Vessels et Variables lorsque l'utilisateur
+ * clique en dehors du menu concerné.
+ */
+document.addEventListener("click", event => {
+
+    if (!vesselDropdown.contains(event.target)) {
+        vesselDropdown.open = false;
+    }
+
+    if (!variablesDropdown.contains(event.target)) {
+        variablesDropdown.open = false;
+    }
+});
+
+
+// -------------------- Replay --------------------
 
 /*
  * Timeline utilisée par le replay.
@@ -305,6 +390,7 @@ variableSelect.addEventListener("change", () => {
  */
 let replayTimeline;
 
+
 replayButton.addEventListener("click", () => {
 
     /*
@@ -313,7 +399,8 @@ replayButton.addEventListener("click", () => {
      */
     i = 0;
 
-    // Construire la timeline correspondant à toute la période sélectionnée.
+    // Construire la timeline correspondant
+    // à toute la période sélectionnée.
     replayTimeline = createReplayTimeline(
         selectedStartDate,
         selectedEndDate

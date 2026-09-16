@@ -22,6 +22,27 @@
             #map {
                 height: 500px;
             }
+
+            #vessels-dropdown {
+                position: relative;
+            }
+
+            #vessel-options {
+                position: absolute;
+                z-index: 1000;
+                background: white;
+            }
+            #variables-dropdown {
+                position: relative;
+            }
+
+            #variable-options {
+                position: absolute;
+                z-index: 1000;
+                background: white;
+                max-height: 300px;
+                overflow-y: auto;
+            }
         </style>
     </head>
 
@@ -32,8 +53,11 @@
 
 
         <!-- Sélection des navires -->
-        <label for="vessels">Select vessels</label>
-        <select id="vessels" multiple></select>
+        <details id="vessels-dropdown">
+            <summary>Select vessels</summary>
+
+            <div id="vessel-options"></div>
+        </details>
 
 
         <!-- Sélection de la période -->
@@ -53,15 +77,18 @@
 
 
         <!-- Sélection des variables -->
-        <label for="variables">Select variables</label>
-        <select id="variables" multiple></select>
+        <details id="variables-dropdown">
+            <summary>Select variables</summary>
+
+            <div id="variable-options"></div>
+        </details>
 
 
         <!-- Colorimétrie de la trajectoire -->
         <label for="color-variable">
             Select a variable for trajectory coloring
         </label>
-        <select id="color-variable"></select>
+        <select id="color-variable" ></select>
 
         <label for="reference-value">Add a reference value</label>
         <input
