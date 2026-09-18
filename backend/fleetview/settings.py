@@ -127,3 +127,5 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
