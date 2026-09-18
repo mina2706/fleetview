@@ -98,14 +98,47 @@
         <!-- Messages et avertissements -->
         <div id="messages"></div>
 
+        <!-- Replay -->
+        <div id="replay-view">
+
+            <div id="replay-header">
+
+                <span id="replay-current-time">
+                    Current time: —
+                </span>
+                <!-- replay controls -->
+                <div id="replay-controls">
+
+                    <div id="replay-speed-controls">
+                        <button id="replay-speed-down">−</button>
+                        <span id="replay-speed-value">1×</span>
+                        <button id="replay-speed-up">+</button>
+                    </div>
+
+                    <button id="replay-play" aria-label="Play" title="Play">▶</button>
+                    <button id="replay-pause" aria-label="Pause" title="Pause">⏸</button>
+
+                    <button id="replay-exit" title="Stop replay">■</button>
+
+                </div>
+
+            </div>
+
+            <div id="replay-table-container">
+                <table id="replay-table">
+                    <thead>
+                        <tr id="replay-table-header"></tr>
+                    </thead>
+
+                    <tbody id="replay-table-body"></tbody>
+                </table>
+            </div>
+
+        </div>
+
         <!-- Carte -->
         <div id="map"></div>
 
-        <!-- Contrôles du replay.
-             Play lance ou reprend la progression temporelle.
-             Pause interrompt le replay sans perdre l'instant courant. -->
-        <button id="replay-play">Play</button>
-        <button id="replay-pause">Pause</button>
 
         <!-- Graphes -->
         <div id="charts"></div>

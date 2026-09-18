@@ -482,54 +482,192 @@ body {
 
 
 /* =========================================================
-   REPLAY CONTROLS
-   Temporaire avant vraie interface Replay
+   REPLAY 
    ========================================================= */
 
-#replay-play,
-#replay-pause {
-    height: 30px;
+/* Replay controls */
 
-    padding: 0 12px;
+#replay-controls {
+    align-items: center;
+    justify-content: flex-end;
 
-    font-family: inherit;
-    font-size: 13px;
+    gap: 10px;
+
+}
+
+
+/* Speed controls */
+
+#replay-speed-controls {
+    display: flex;
+    align-items: center;
+
+    height: 34px;
+
+    border: 1px solid #cbd7ea;
+    border-radius: 6px;
+
+    overflow: hidden;
+
+    background: white;
+}
+
+#replay-speed-controls button {
+    width: 34px;
+    height: 34px;
+
+    border: none;
+
+    background: white;
+    color: #2f4f8f;
+
+    font-size: 18px;
     font-weight: 600;
-
-    border-radius: 5px;
 
     cursor: pointer;
 }
 
-#replay-play {
-    margin-left: 10px;
-
-    border: 1px solid #1509f6;
-
-    background: #1509f6;
-
-    color: white;
-}
-
-#replay-pause {
-    margin-left: 4px;
-
-    border: 1px solid #3d9be9;
-
-    background: white;
-
-    color: #1509f6;
-}
-
-#replay-play:hover {
-    background: #281df4;
-}
-
-#replay-pause:hover {
+#replay-speed-controls button:hover {
     background: #eef6ff;
 }
 
+#replay-speed-value {
+    min-width: 44px;
 
+    text-align: center;
+
+    color: #0b174f;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    border-left: 1px solid #cbd7ea;
+    border-right: 1px solid #cbd7ea;
+}
+
+
+/* Play / Pause */
+
+#replay-play,
+#replay-pause {
+    width: 36px;
+    height: 34px;
+
+    border: 1px solid #3d9be9;
+    border-radius: 6px;
+
+    background: #3d9be9;
+    color: white;
+
+    font-size: 15px;
+
+    cursor: pointer;
+}
+
+#replay-play:hover,
+#replay-pause:hover {
+    background: #243f76;
+}
+#replay-view,
+#replay-controls {
+    display: none;
+}
+
+body.replay-mode #main-navbar,
+body.replay-mode #messages,
+body.replay-mode #charts {
+    display: none;
+}
+
+body.replay-mode #replay-view {
+    display: block;
+}
+
+body.replay-mode #replay-controls {
+    display: flex;
+}
+
+#replay-view {
+    margin: 10px;
+}
+
+
+/* Header Replay */
+
+#replay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 10px;
+
+    padding: 10px 14px;
+
+    background: #2f4f8f;
+    color: white;
+
+    border-radius: 6px;
+}
+
+#replay-current-time {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#replay-exit {
+    height: 30px;
+
+    padding: 0 12px;
+
+    border: 1px solid white;
+    border-radius: 5px;
+
+    background: white;
+    color: #2f4f8f;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+/* Table Replay */
+
+#replay-table-container {
+    overflow-x: auto;
+
+    background: white;
+
+    border: 1px solid #dce5f3;
+    border-radius: 6px;
+}
+
+#replay-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    font-size: 13px;
+}
+
+#replay-table th,
+#replay-table td {
+    padding: 8px 10px;
+
+    text-align: center;
+
+    border-bottom: 1px solid #e5ebf5;
+
+    white-space: nowrap;
+}
+
+#replay-table th {
+    background: #eef6ff;
+
+    color: #0b174f;
+
+    font-weight: 700;
+}
 /* =========================================================
    CHARTS
    ========================================================= */

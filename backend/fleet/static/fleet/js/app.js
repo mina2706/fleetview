@@ -20,6 +20,7 @@ let toleranceInput = document.getElementById("tolerance-value");
 let chartViewSelect = document.getElementById("chart-view");
 
 let replayButton = document.getElementById("replay");
+let exitReplayButton = document.getElementById("replay-exit")
 
 
 // -------------------- Chargement des sélecteurs --------------------
@@ -407,4 +408,32 @@ replayButton.addEventListener("click", () => {
         selectedStartDate,
         selectedEndDate
     );
+    document.body.classList.add("replay-mode");
+    buildReplayTableHeader(selectedVariables, variablesByType);
+    
+    
+    
 });
+
+exitReplayButton.addEventListener("click",() => {
+    
+    // revenir à l'état normale de la carte et de l'interface
+    clearInterval(replayInterval);
+    replayInterval = null;
+    let variablePilot = colorVariableSelect.value;
+    let addedReferenceValue = referenceInput.value;
+    let addedToleranceValue = toleranceInput.value;
+    clearMap();
+
+    displayMap(
+        result,
+        selectedVessels,
+        variablePilot,
+        addedReferenceValue,
+        addedToleranceValue,
+        variablesByType
+    );
+
+    document.body.classList.remove("replay-mode")
+})
+

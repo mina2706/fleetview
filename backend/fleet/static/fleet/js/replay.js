@@ -3,7 +3,18 @@
 let playButton = document.getElementById("replay-play");
 let pauseButton = document.getElementById("replay-pause");
 
+let replayTableHeader = document.getElementById("replay-table-header");
+let replayTableBody = document.getElementById("replay-table-body")
+let replayCurentTime = document.getElementById("replay-current-time")
 
+let speedUpButton = document.getElementById("replay-speed-up")
+let speedDownButton = document.getElementById("replay-speed-down")
+let speedValue = document.getElementById("replay-speed-value")
+
+
+let replayDelay = 1000
+let replaySpeeds = [0.5, 1, 2, 4, 8];
+let replaySpeedIndex = 1;
 // -------------------- Construction de la timeline --------------------
 
 /*
@@ -224,75 +235,7 @@ playButton.addEventListener("click", () => {
     // Ne démarrer un intervalle que si aucun replay n'est déjà actif.
     if (replayInterval === null) {
 
-        replayInterval = setInterval(() => {
-
-            let curentTime = replayTimeline[i];
-
-            /*
-             * Tant qu'un instant existe dans la timeline,
-             * reconstituer l'état de chaque navire sélectionné.
-             */
-            if (curentTime !== undefined) {
-
-                selectedVessels.forEach(vessel => {
-
-                    let curentVesselState = getVesselDataAtTime(
-                        curentTime,
-                        vessel,
-                        result,
-                        selectedVariables,
-                        variablesByType
-                    );
-
-                    /*
-                     * Une position GPS n'est affichée que si Latitude
-                     * et Longitude sont réellement disponibles.
-                     *
-                     * En cas de trou GPS, le marqueur est masqué plutôt que
-                     * laissé à sa position précédente : conserver l'ancienne
-                     * position ferait croire qu'une position est connue
-                     * alors qu'aucune donnée GPS n'existe à cet instant.
-                     */
-                    if (
-                        curentVesselState.position !== null
-                        && curentVesselState.position[0] !== null
-                        && curentVesselState.position[1] !== null
-                    ) {
-                        // Réafficher le marqueur s'il avait été masqué
-                        // pendant un instant sans position GPS.
-                        vesselsMarkers[vessel].setOpacity(1);
-
-                        // Déplacer le marqueur vers la position correspondant
-                        // à l'instant courant du replay.
-                        vesselsMarkers[vessel].setLatLng(
-                            curentVesselState.position
-                        );
-
-                    } else {
-
-                        // Masquer le marqueur lorsqu'aucune position GPS
-                        // valide n'est disponible à cet instant.
-                        vesselsMarkers[vessel].setOpacity(0);
-                    }
-                });
-
-            } else {
-
-                /*
-                 * Aucun nouvel instant n'existe :
-                 * la fin de la timeline a été atteinte.
-                 *
-                 * Arrêter alors l'intervalle et remettre replayInterval
-                 * à null afin qu'un nouveau Play puisse être lancé ensuite.
-                 */
-                clearInterval(replayInterval);
-                replayInterval = null;
-            }
-
-            // Passer à l'instant suivant de la timeline.
-            i++;
-
-        }, 1000);
+        replayInterval = setInterval(runReplayTick,  replayDelay);
     }
 });
 
@@ -310,3 +253,198 @@ pauseButton.addEventListener("click", () => {
     clearInterval(replayInterval);
     replayInterval = null;
 });
+
+// tableau de replay 
+
+function buildReplayTableHeader(selectedVariables, variablesByType) {
+
+    replayTableHeader.replaceChildren();
+
+    // colonnes fixes
+    let fixedColumns = ["Vessel" , "Latitude" , "Longitude"]   
+
+    fixedColumns.forEach(column => {
+        let th = document.createElement("th")
+        th.textContent = column
+        replayTableHeader.appendChild(th)
+    })
+
+    // variables sélectionnées
+    selectedVariables.forEach(variable => {
+        let th = document.createElement("th")
+        th.textContent = variable
+        replayTableHeader.appendChild(th)
+    })
+
+    // éventuellement "MACS3 last update" si une variable de ce dataset est selectionnée
+    let hasMacs3Variable = selectedVariables.some(variable =>variablesByType["MACS3"].includes(variable));
+    if (hasMacs3Variable){
+        let th = document.createElement("th");
+        th.textContent = "MACS3 Last update";
+        replayTableHeader.appendChild(th);
+    }
+
+}
+
+function updateReplayTable(selectedVessels, curentTime, result, selectedVariables, variablesByType){
+    replayTableBody.replaceChildren()
+    let hasMacs3Variable = selectedVariables.some(variable =>variablesByType["MACS3"].includes(variable));
+    selectedVessels.forEach(vessel => {
+        // ajouter l'IMO du navire courant au tableau
+        let row = document.createElement("tr")
+        let firstColumn = document.createElement("td")
+        firstColumn.textContent = vessel
+        row.appendChild(firstColumn)
+
+        let vesselData = getVesselDataAtTime(curentTime, vessel, result, selectedVariables, variablesByType)
+
+        // ajouter la position au tableau au timestamp courant 
+        let latitude = document.createElement("td")
+        let longitude = document.createElement("td")
+        if (vesselData.position !== null && vesselData.position[0] !== null && vesselData.position[1]  !== null ){
+            latitude.textContent = vesselData.position[0]
+            longitude.textContent = vesselData.position[1]            
+        }else{
+            latitude.textContent = " - "
+            longitude.textContent = " - "
+        }
+        row.appendChild(latitude)
+        row.appendChild(longitude)
+
+        // parcourir les variables selectionnées et ajouter leurs valeurs au timestamp courant 
+        selectedVariables.forEach(variable => {
+            let cell = document.createElement("td")
+            let value = vesselData.values[variable]
+            if (value !== null && value !== undefined){
+                cell.textContent = value
+            }else{
+                cell.textContent = " - "
+            }
+            row.appendChild(cell)
+        })
+
+        
+        // on ajoute le timestamp du MACS3 si une variable de ce dataset est selectionnée 
+        if (hasMacs3Variable){
+            let macs3Cell = document.createElement("td");
+            if (vesselData.macs3Timestamp !== null && vesselData.macs3Timestamp !== undefined) {
+                macs3Cell.textContent = vesselData.macs3Timestamp;
+            }else{
+                macs3Cell.textContent = " - ";
+            }
+            
+            row.appendChild(macs3Cell);
+        }
+
+        replayTableBody.appendChild(row);
+    })
+}
+
+speedUpButton.addEventListener("click", () => {
+
+    if (replaySpeedIndex < replaySpeeds.length - 1) {
+
+        let wasPlaying = replayInterval !== null;
+
+        replaySpeedIndex++;
+        replayDelay = 1000 / replaySpeeds[replaySpeedIndex];
+        speedValue.textContent = `${replaySpeeds[replaySpeedIndex]}x`;
+         // on ne peut changer la vitesse sauf si y a déja un replay en cours
+        if (wasPlaying) {
+            clearInterval(replayInterval);
+            // recréer l'interavle avec une nouvelle vitesse au même i 
+            replayInterval = setInterval(runReplayTick, replayDelay);
+        }
+    }
+});
+
+speedDownButton.addEventListener("click", () => {
+    if (replaySpeedIndex > 0 ) {
+
+        let wasPlaying = replayInterval !== null;
+
+        replaySpeedIndex--;
+        replayDelay = 1000 / replaySpeeds[replaySpeedIndex]
+        speedValue.textContent = `${replaySpeeds[replaySpeedIndex]}x`
+        // on ne peut changer la vitesse sauf si y a déja un replay en cours
+        if (wasPlaying) {
+            clearInterval(replayInterval);
+            // recréer l'interavle avec une nouvelle vitesse au même i 
+            replayInterval = setInterval(runReplayTick, replayDelay);
+        }
+    }
+})
+
+function runReplayTick() {
+
+    let curentTime = replayTimeline[i];
+
+    /*
+        * Tant qu'un instant existe dans la timeline,
+        * reconstituer l'état de chaque navire sélectionné.
+        */
+    if (curentTime !== undefined) {
+        replayCurentTime.textContent =  `Current time: ${new Date(curentTime).toLocaleString("fr-FR")}`;
+        updateReplayTable(selectedVessels, curentTime, result , selectedVariables, variablesByType)
+        selectedVessels.forEach(vessel => {
+
+            let curentVesselState = getVesselDataAtTime(
+                curentTime,
+                vessel,
+                result,
+                selectedVariables,
+                variablesByType
+            );
+    
+            
+
+
+            /*
+                * Une position GPS n'est affichée que si Latitude
+                * et Longitude sont réellement disponibles.
+                *
+                * En cas de trou GPS, le marqueur est masqué plutôt que
+                * laissé à sa position précédente : conserver l'ancienne
+                * position ferait croire qu'une position est connue
+                * alors qu'aucune donnée GPS n'existe à cet instant.
+                */
+            if (
+                curentVesselState.position !== null
+                && curentVesselState.position[0] !== null
+                && curentVesselState.position[1] !== null
+            ) {
+                // Réafficher le marqueur s'il avait été masqué
+                // pendant un instant sans position GPS.
+                vesselsMarkers[vessel].setOpacity(1);
+
+                // Déplacer le marqueur vers la position correspondant
+                // à l'instant courant du replay.
+                vesselsMarkers[vessel].setLatLng(
+                    curentVesselState.position
+                );
+
+            } else {
+
+                // Masquer le marqueur lorsqu'aucune position GPS
+                // valide n'est disponible à cet instant.
+                vesselsMarkers[vessel].setOpacity(0);
+            }
+        });
+
+    } else {
+
+        /*
+            * Aucun nouvel instant n'existe :
+            * la fin de la timeline a été atteinte.
+            *
+            * Arrêter alors l'intervalle et remettre replayInterval
+            * à null afin qu'un nouveau Play puisse être lancé ensuite.
+            */
+        clearInterval(replayInterval);
+        replayInterval = null;
+    }
+
+    // Passer à l'instant suivant de la timeline.
+    i++;
+
+}
