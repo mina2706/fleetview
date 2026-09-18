@@ -18,126 +18,94 @@
             href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         >
 
-        <style>
-            #map {
-                height: 500px;
-            }
+        <link rel="stylesheet" href="{% static 'fleet/css/style.css' %}">
 
-            #vessels-dropdown {
-                position: relative;
-            }
-
-            #vessel-options {
-                position: absolute;
-                z-index: 1000;
-                background: white;
-            }
-            #variables-dropdown {
-                position: relative;
-            }
-
-            #variable-options {
-                position: absolute;
-                z-index: 1000;
-                background: white;
-                max-height: 300px;
-                overflow-y: auto;
-            }
-        </style>
+        
     </head>
 
 
     <body>
 
-        <h1>FleetView</h1>
+        <nav id="main-navbar">
 
+            <div id="navbar-brand">
+                <h1>FleetView</h1>
+            </div>
 
-        <!-- Sélection des navires -->
-        <details id="vessels-dropdown">
-            <summary>Select vessels</summary>
+            <div id="navbar-controls">
 
-            <div id="vessel-options"></div>
-        </details>
+                <details id="vessels-dropdown">
+                    <summary>Select vessels</summary>
+                    <div id="vessel-options"></div>
+                </details>
 
+                <div class="navbar-control">
+                    <label for="start-date">Start</label>
+                    <input
+                        type="date"
+                        id="start-date"
+                        value="2026-03-01"
+                    >
+                </div>
 
-        <!-- Sélection de la période -->
-        <label for="start-date">Start date</label>
-        <input
-            type="date"
-            id="start-date"
-            value="2026-03-01"
-        >
+                <div class="navbar-control">
+                    <label for="end-date">End</label>
+                    <input
+                        type="date"
+                        id="end-date"
+                        value="2026-08-01"
+                    >
+                </div>
 
-        <label for="end-date">End date</label>
-        <input
-            type="date"
-            id="end-date"
-            value="2026-08-01"
-        >
+                <details id="variables-dropdown">
+                    <summary>Select variables</summary>
+                    <div id="variable-options"></div>
+                </details>
 
+                <select id="color-variable">
+                    <option value="">Coloring variable</option>
+                </select>
 
-        <!-- Sélection des variables -->
-        <details id="variables-dropdown">
-            <summary>Select variables</summary>
+                <input
+                    type="number"
+                    id="reference-value"
+                    step="any"
+                    value="20"
+                    placeholder="Reference"
+                >
 
-            <div id="variable-options"></div>
-        </details>
+                <input
+                    type="number"
+                    id="tolerance-value"
+                    step="any"
+                    value="5"
+                    placeholder="Tolerance"
+                >
 
+                <select id="chart-view">
+                    <option value="" selected disabled hidden>Chart view</option>
+                    <option value="variable">By variable</option>
+                    <option value="vessel">By vessel</option>
+                </select>
 
-        <!-- Colorimétrie de la trajectoire -->
-        <label for="color-variable">
-            Select a variable for trajectory coloring
-        </label>
-        <select id="color-variable" ></select>
+                <button id="find">Find</button>
+                <button id="replay">Replay</button>
 
-        <label for="reference-value">Add a reference value</label>
-        <input
-            type="number"
-            id="reference-value"
-            step="any"
-            value="20"
-        >
+            </div>
 
-        <label for="tolerance-value">Add a tolerance value</label>
-        <input
-            type="number"
-            id="tolerance-value"
-            step="any"
-            value="5"
-        >
-
-
-        <!-- Choix du mode d'affichage lorsque plusieurs variables
-             et plusieurs navires sont sélectionnés -->
-        <label for="chart-view">Chart view:</label>
-        <select id="chart-view">
-            <option value="variable">By variable</option>
-            <option value="vessel">By vessel</option>
-        </select>
-
-
-        <!-- Lancer la recherche -->
-        <button id="find">Find</button>
-
-        <!-- Préparer un nouveau replay à partir
-             de la dernière recherche effectuée -->
-        <button id="replay">Replay</button>
-
+        </nav>
 
         <!-- Messages et avertissements -->
         <div id="messages"></div>
 
-
         <!-- Carte -->
         <div id="map"></div>
-
 
         <!-- Contrôles du replay.
              Play lance ou reprend la progression temporelle.
              Pause interrompt le replay sans perdre l'instant courant. -->
         <button id="replay-play">Play</button>
         <button id="replay-pause">Pause</button>
-
 
         <!-- Graphes -->
         <div id="charts"></div>
@@ -149,7 +117,6 @@
 
         <!-- Adaptateur nécessaire à Chart.js pour utiliser une échelle temporelle -->
         <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
 
         <!-- Scripts de l'application.
              charts.js est chargé avant app.js car app.js appelle

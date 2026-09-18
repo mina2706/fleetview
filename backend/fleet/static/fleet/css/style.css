@@ -1,0 +1,532 @@
+/* =========================================================
+   GLOBAL
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+
+    background: #f5f7fb;
+    color: #0b174f;
+}
+
+
+/* =========================================================
+   NAVBAR
+   ========================================================= */
+
+#main-navbar {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 7px 10px;
+
+    background: #2f4f8f;
+
+    border-bottom: 2px solid #3d9be9;
+
+    position: sticky;
+    top: 0;
+
+    z-index: 2000;
+}
+
+
+/* =========================================================
+   BRAND
+   ========================================================= */
+
+#navbar-brand {
+    flex-shrink: 0;
+
+    margin-right: 4px;
+}
+
+#navbar-brand h1 {
+    margin: 0;
+
+    font-size: 20px;
+    font-weight: 700;
+
+    color: white;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   CONTROLES
+   ========================================================= */
+
+#navbar-controls {
+    display: flex;
+    align-items: center;
+
+    flex-wrap: nowrap;
+
+    gap: 6px;
+
+    min-width: 0;
+}
+
+
+/* =========================================================
+   START / END
+   ========================================================= */
+
+.navbar-control {
+    display: flex;
+    align-items: center;
+
+    gap: 4px;
+
+    white-space: nowrap;
+}
+
+.navbar-control label {
+    font-size: 13px;
+    font-weight: 500;
+
+    color: white;
+}
+
+
+/* =========================================================
+   STYLE GENERAL DES CONTROLES
+   ========================================================= */
+
+#main-navbar input,
+#main-navbar select,
+#main-navbar button,
+#main-navbar summary {
+    height: 30px;
+
+    font-family: inherit;
+    font-size: 13px;
+
+    border: 1px solid #7ab9ef;
+    border-radius: 5px;
+
+    color: #0b174f;
+
+    background: #f7faff;
+}
+
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+#main-navbar input {
+    padding: 0 6px;
+}
+
+#main-navbar input:hover {
+    border-color: #3d9be9;
+}
+
+#main-navbar input:focus {
+    outline: none;
+
+    border-color: #1509f6;
+
+    box-shadow: 0 0 0 2px rgba(61, 155, 233, 0.25);
+}
+
+
+/* Dates */
+
+#start-date,
+#end-date {
+    width: 123px;
+}
+
+
+/* Reference / Tolerance */
+
+#reference-value,
+#tolerance-value {
+    width: 58px;
+}
+
+
+/* =========================================================
+   SELECTS
+   ========================================================= */
+
+#main-navbar select {
+    padding: 0 6px;
+
+    cursor: pointer;
+}
+
+#main-navbar select:hover {
+    border-color: #3d9be9;
+}
+
+#main-navbar select:focus {
+    outline: none;
+
+    border-color: #1509f6;
+
+    box-shadow: 0 0 0 2px rgba(61, 155, 233, 0.25);
+}
+
+#color-variable {
+    width: 145px;
+}
+
+#chart-view {
+    width: 105px;
+}
+
+
+/* =========================================================
+   FIND / REPLAY
+   ========================================================= */
+
+#main-navbar button {
+    padding: 0 12px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+
+/* Action principale */
+
+#find {
+    background: #3d9be9 !important;
+    border-color: #3d9be9 !important;
+
+    color: white !important;
+}
+
+#find:hover {
+    background: #2c8ddd !important;
+}
+
+
+/* Action secondaire */
+
+#replay {
+    background: white !important;
+
+    border-color: white !important;
+
+    color: #1509f6 !important;
+}
+
+#replay:hover {
+    background: #eaf4ff !important;
+}
+
+
+/* =========================================================
+   VESSELS / VARIABLES DROPDOWNS
+   ========================================================= */
+
+#vessels-dropdown,
+#variables-dropdown {
+    position: relative;
+
+    flex-shrink: 0;
+}
+
+
+/* Partie visible */
+
+#vessels-dropdown summary,
+#variables-dropdown summary {
+    display: flex;
+    align-items: center;
+
+    padding: 0 8px;
+
+    cursor: pointer;
+
+    list-style: none;
+
+    white-space: nowrap;
+}
+
+#vessels-dropdown summary {
+    width: 125px;
+}
+
+#variables-dropdown summary {
+    width: 135px;
+}
+
+
+/* Supprime la flèche native */
+
+#vessels-dropdown summary::-webkit-details-marker,
+#variables-dropdown summary::-webkit-details-marker {
+    display: none;
+}
+
+
+/* =========================================================
+   VRAI CHEVRON
+   ========================================================= */
+
+#vessels-dropdown summary::after,
+#variables-dropdown summary::after {
+    content: "";
+
+    width: 7px;
+    height: 7px;
+
+    margin-left: auto;
+    margin-right: 2px;
+
+    border-right: 2px solid #1509f6;
+    border-bottom: 2px solid #1509f6;
+
+    transform: rotate(45deg) translateY(-2px);
+
+    transition: transform 0.15s ease;
+}
+
+
+/* Chevron vers le haut lorsque ouvert */
+
+#vessels-dropdown[open] summary::after,
+#variables-dropdown[open] summary::after {
+    transform: rotate(225deg) translate(-2px, -2px);
+}
+
+
+/* Etat ouvert */
+
+#vessels-dropdown[open] summary,
+#variables-dropdown[open] summary {
+    border-color: #3d9be9;
+
+    background: #eaf4ff;
+}
+
+
+/* =========================================================
+   CONTENU DES DROPDOWNS
+   ========================================================= */
+
+#vessel-options,
+#variable-options {
+    position: absolute;
+
+    top: calc(100% + 5px);
+    left: 0;
+
+    z-index: 3000;
+
+    padding: 7px;
+
+    background: white;
+
+    border: 1px solid #7ab9ef;
+    border-radius: 6px;
+
+    box-shadow: 0 5px 14px rgba(11, 23, 79, 0.18);
+
+    overflow-y: auto;
+
+    font-size: 13px;
+
+    color: #0b174f;
+}
+
+
+/* =========================================================
+   VESSELS MENU
+   ========================================================= */
+
+#vessel-options {
+    min-width: 190px;
+
+    max-height: 250px;
+}
+
+#vessel-options > div {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 4px 5px;
+
+    border-radius: 4px;
+}
+
+#vessel-options > div:hover {
+    background: #eef6ff;
+}
+
+#vessel-options input {
+    margin: 0;
+
+    accent-color: #1509f6;
+}
+
+#vessel-options label {
+    cursor: pointer;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   VARIABLES MENU
+   ========================================================= */
+
+#variable-options {
+    min-width: 220px;
+
+    max-height: 300px;
+}
+
+#variable-options > div {
+    margin-bottom: 7px;
+}
+
+#variable-options > div:last-child {
+    margin-bottom: 0;
+}
+
+
+/* GPS / MOTIONS / MACS3 */
+
+#variable-options > div > div:first-child {
+    margin-bottom: 3px;
+    padding: 2px 4px;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    color: #1509f6;
+}
+
+
+/* Checkbox + variable */
+
+#variable-options > div > div:not(:first-child) {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 3px 5px;
+
+    border-radius: 4px;
+}
+
+#variable-options > div > div:not(:first-child):hover {
+    background: #eef6ff;
+}
+
+#variable-options input {
+    margin: 0;
+
+    accent-color: #1509f6;
+}
+
+#variable-options label {
+    cursor: pointer;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   MESSAGES
+   ========================================================= */
+
+#messages {
+    margin: 6px 10px 0;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   MAP
+   ========================================================= */
+
+#map {
+    height: 500px;
+
+    margin: 8px 10px;
+
+    border: 1px solid #dce5f3;
+    border-radius: 6px;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   REPLAY CONTROLS
+   Temporaire avant vraie interface Replay
+   ========================================================= */
+
+#replay-play,
+#replay-pause {
+    height: 30px;
+
+    padding: 0 12px;
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+
+    border-radius: 5px;
+
+    cursor: pointer;
+}
+
+#replay-play {
+    margin-left: 10px;
+
+    border: 1px solid #1509f6;
+
+    background: #1509f6;
+
+    color: white;
+}
+
+#replay-pause {
+    margin-left: 4px;
+
+    border: 1px solid #3d9be9;
+
+    background: white;
+
+    color: #1509f6;
+}
+
+#replay-play:hover {
+    background: #281df4;
+}
+
+#replay-pause:hover {
+    background: #eef6ff;
+}
+
+

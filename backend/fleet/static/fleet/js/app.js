@@ -334,7 +334,9 @@ variableOptions.addEventListener("change", () => {
      * Cela permet aussi de supprimer automatiquement
      * les variables qui viennent d'être désélectionnées.
      */
-    colorVariableSelect.replaceChildren();
+    
+    colorVariableSelect.options.length = 1;
+    
 
     selectedVariables.forEach(variable => {
 
