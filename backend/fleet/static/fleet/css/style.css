@@ -455,17 +455,6 @@ body {
 
 
 /* =========================================================
-   MESSAGES
-   ========================================================= */
-
-#messages {
-    margin: 6px 10px 0;
-
-    font-size: 13px;
-}
-
-
-/* =========================================================
    MAP
    ========================================================= */
 
@@ -760,4 +749,50 @@ body.replay-mode #replay-controls {
     cursor: pointer;
 
     z-index: 1;
+}
+
+/* =========================
+   MESSAGES
+   ========================= */
+
+#messages {
+    margin: 10px;
+}
+
+
+/* Error */
+
+.error-message {
+    margin-bottom: 8px;
+
+    padding: 10px 12px;
+
+    border: 1px solid #e4a4a4;
+    border-left: 4px solid #c62828;
+    border-radius: 6px;
+
+    background: #fdecec;
+    color: #8b1e1e;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+/* Warning */
+
+.warning-message {
+    margin-bottom: 8px;
+
+    padding: 10px 12px;
+
+    border: 1px solid #e7c875;
+    border-left: 4px solid #d99a00;
+    border-radius: 6px;
+
+    background: #fff8df;
+    color: #7a5800;
+
+    font-size: 13px;
+    font-weight: 600;
 }

@@ -11,8 +11,6 @@ let endDateInput = document.getElementById("end-date");
 let variableOptions = document.getElementById("variable-options");
 let variablesDropdown = document.getElementById("variables-dropdown");
 
-let messagesDiv = document.getElementById("messages");
-
 let colorVariableSelect = document.getElementById("color-variable");
 let referenceInput = document.getElementById("reference-value");
 let toleranceInput = document.getElementById("tolerance-value");
@@ -188,12 +186,12 @@ findButton.addEventListener("click", async () => {
 
     // -------------------- Gestion des erreurs --------------------
 
-    if (response.ok === false) {
-        messagesDiv.textContent = result.error;
+   if (response.ok === false) {
+        showError(result.error);
         return;
     }
 
-    messagesDiv.textContent = JSON.stringify(result.warnings);
+    showWarnings(result.warnings);
 
 
     // -------------------- Affichage des graphes --------------------
