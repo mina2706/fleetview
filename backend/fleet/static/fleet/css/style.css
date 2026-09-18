@@ -530,3 +530,96 @@ body {
 }
 
 
+/* =========================================================
+   CHARTS
+   ========================================================= */
+
+#charts {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    padding: 10px;
+}
+
+#charts > * {
+    min-width: 0;
+}
+
+#charts > :only-child {
+    grid-column: 1 / -1;
+
+    width: 100%;
+    max-width: 850px;
+
+    justify-self: center;
+}
+
+.chart-container {
+    min-height: 320px;
+}
+
+#charts:has(> .chart-container:nth-child(2):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#chart-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.45);
+
+    display: none;
+
+    z-index: 3000;
+}
+
+.chart-container.expanded {
+    position: fixed;
+
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    width: 92vw;
+    height: 82vh;
+
+    padding: 20px;
+
+    background: white;
+
+    border-radius: 8px;
+
+    z-index: 4000;
+}
+
+.chart-close {
+    display: none;
+}
+
+.chart-container.expanded .chart-close {
+    display: block;
+
+    position: absolute;
+    top: 8px;
+    right: 8px;
+
+    width: 32px;
+    height: 32px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: #eef2f8;
+    color: #2f4f8f;
+
+    font-size: 22px;
+    line-height: 1;
+
+    cursor: pointer;
+
+    z-index: 1;
+}

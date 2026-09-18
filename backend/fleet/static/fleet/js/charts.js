@@ -1,6 +1,7 @@
 // -------------------- Élément HTML --------------------
 
 let chartDiv = document.getElementById("charts");
+let chartOverlay = document.getElementById("chart-overlay")
 
 
 // -------------------- Graphe : une variable --------------------
@@ -84,6 +85,7 @@ function displayChartOneVariable(
         type: "line",
         data: chartData,
         options: {
+            maintainAspectRatio: false,
             scales: {
                 x: {
                     type: "time",
@@ -107,10 +109,9 @@ function displayChartOneVariable(
 
     // Créer un canvas pour ce graphe puis demander
     // à Chart.js d'y effectuer le rendu.
-    let chartCanvas = document.createElement("canvas");
-    chartDiv.appendChild(chartCanvas);
+    createChart(chartConfig)
 
-    new Chart(chartCanvas, chartConfig);
+    
 }
 
 
@@ -277,16 +278,14 @@ function displayChartOneVessel(
         type: "line",
         data: chartData,
         options: {
+            maintainAspectRatio: false,
             scales: variablesScales
         }
     };
 
 
     // Créer un canvas pour ce navire puis effectuer le rendu.
-    let chartCanvas = document.createElement("canvas");
-    chartDiv.appendChild(chartCanvas);
-
-    new Chart(chartCanvas, chartConfig);
+    createChart(chartConfig)
 }
 
 
@@ -341,4 +340,39 @@ function getVariableAxisGroup(
 
 
     return groupName;
+}
+
+function createChart(chartConfig) {
+
+    let chartContainer = document.createElement("div");
+    chartContainer.classList.add("chart-container");
+
+    let chartCanvas = document.createElement("canvas");
+
+    let closeButton = document.createElement("button");
+    closeButton.classList.add("chart-close");
+    closeButton.textContent = "×";
+
+    chartContainer.appendChild(chartCanvas);
+    chartContainer.appendChild(closeButton);
+
+    chartDiv.appendChild(chartContainer);
+
+    new Chart(chartCanvas, chartConfig);
+
+
+    // Agrandir le graphe au clic.
+    chartContainer.addEventListener("click", () => {
+        chartContainer.classList.add("expanded");
+        chartOverlay.style.display = "block";
+    });
+
+
+    // Fermer le graphe agrandi.
+    closeButton.addEventListener("click", event => {
+        event.stopPropagation();
+
+        chartContainer.classList.remove("expanded");
+        chartOverlay.style.display = "none";
+    });
 }
