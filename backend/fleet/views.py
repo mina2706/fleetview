@@ -19,32 +19,14 @@ def vessels(request):
 
 
 def variables(request):
-    """
-    Retourne le catalogue global des variables avec leurs métadonnées.
-
-    Structure :
-    common_metadata
-    └── dataset_type
-        └── variable
-            ├── raw_name
-            ├── unit
-            └── source
-    """
+    """Retourne le catalogue global des variables et leurs métadonnées."""
     return JsonResponse({
         "variables": fleet_config.common_metadata
     })
 
 
 def data(request):
-    """
-    Retourne les données correspondant à :
-    - un ou plusieurs navires ;
-    - une période ;
-    - zéro, une ou plusieurs variables.
-
-    La trajectoire GPS (Timestamp, Longitude, Latitude)
-    est retournée même si aucune variable d'analyse n'est demandée.
-    """
+    """Retourne les séries filtrées, les warnings et le contexte MACS3 du Replay."""
 
     vessels = request.GET.getlist("vessels")
     start_date = request.GET.get("start_date")
@@ -114,29 +96,7 @@ def data(request):
     # 3. Vérification des variables demandées
     # ---------------------------------------------------------
 
-    """
-    Structure construite ici :
-
-    availables_variables
-    └── vessel
-        └── dataset_type
-            └── [colonnes à retourner]
-
-    Exemple :
-    {
-        "AAA": {
-            "GPS": ["Timestamp", "Longitude", "Latitude", "Speed"],
-            "MOTIONS": ["Timestamp", "Roll motion"],
-            "MACS3": ["Timestamp"]
-        }
-    }
-
-    Timestamp est ajouté comme colonne de référence pour chaque dataset.
-
-    Pour GPS, Longitude et Latitude sont également ajoutées par défaut :
-    elles servent à construire la trajectoire et ne dépendent donc pas
-    du choix d'une variable par l'utilisateur.
-    """
+    # Préparer les colonnes par navire/dataset ; GPS conserve ses coordonnées.
 
     availables_variables = {}
     not_availables_variables = {}
@@ -164,21 +124,7 @@ def data(request):
 
         not_availables_variables[vessel] = []
 
-    """
-    Pour chaque variable demandée :
-
-    1. common_metadata permet de savoir si elle est connue
-       et à quel dataset elle appartient ;
-
-    2. fleet_config.data permet ensuite de vérifier si cette variable
-       existe réellement pour chaque navire demandé.
-
-    Une variable :
-    - absente de common_metadata -> unknown_variables ;
-    - connue globalement mais absente pour un navire
-      -> not_availables_variables[vessel] ;
-    - réellement disponible -> ajoutée aux colonnes à retourner.
-    """
+    # Préparer les colonnes par navire/dataset ; GPS conserve ses coordonnées.
 
     for variable in variables:
         found = False
@@ -215,49 +161,7 @@ def data(request):
     # 4. Construction de la réponse
     # ---------------------------------------------------------
 
-    """
-    Structure finale :
-
-    result
-    ├── response
-    │   └── vessel
-    │       └── dataset_type
-    │           └── liste de records JSON
-    │
-    └── replay_context
-        └── vessel
-            └── historique MACS3 complet
-
-    response contient les données filtrées selon la période demandée.
-    replay_context conserve l'historique MACS3 complet de chaque navire
-    afin de pouvoir retrouver, pendant le replay, le dernier état MACS3
-    connu avant ou à l'instant courant.
-
-    Exemple de response :
-    {
-        "AAA": {
-            "GPS": [...],
-            "MOTIONS": [...]
-        }
-    }
-
-    Chaque DataFrame retourné dans response est :
-    1. filtré selon la période ;
-    2. réduit aux colonnes déterminées précédemment ;
-    3. préparé pour la sérialisation JSON ;
-    4. converti en liste de dictionnaires.
-
-    Les datasets qui ne contiennent que ["Timestamp"] sont ignorés :
-    cela signifie qu'aucune donnée utile de ce dataset n'a été demandée.
-
-    GPS reste néanmoins présent sans variable supplémentaire puisque
-    Longitude et Latitude ont été ajoutées dès l'initialisation.
-
-    Les valeurs manquantes numériques sont représentées par pandas sous
-    forme de NaN. Comme NaN n'est pas une valeur JSON valide, le DataFrame
-    est converti en type object afin de pouvoir remplacer les NaN par None.
-    JsonResponse convertira ensuite automatiquement les None en null.
-    """
+    # Réponse filtrée pour l’affichage ; historique MACS3 complet pour le Replay.
 
     response_data = {}
     replay_context = {}

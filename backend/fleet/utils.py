@@ -3,14 +3,7 @@ from pathlib import Path
 
 
 def extract_file_info(file_name: str):
-    """
-    Extrait le nom du navire et le type de dataset à partir
-    du nom d'un fichier CSV.
-
-    Exemple :
-    "2026-08-25 16_28_15_AAA GPS.csv"
-    -> ("AAA", "GPS")
-    """
+    """Déduit le navire et le dataset du nom de fichier."""
     name_without_extension = Path(file_name).stem
     info_part = name_without_extension.split("_")[-1]
 
@@ -31,13 +24,7 @@ def find_files(folder_path: Path):
 
 
 def clean_timestamps(df: pd.DataFrame, column: str):
-    """
-    Convertit la colonne temporelle en datetime, supprime les timestamps
-    invalides, trie les données chronologiquement et réinitialise l'index.
-
-    Returns:
-        tuple: Le DataFrame nettoyé et le nombre de lignes valides restantes.
-    """
+    """Nettoie et trie les timestamps et réindexe le DataFrame."""
     df = df.copy()
 
     # Les timestamps invalides sont convertis en NaT.
@@ -56,14 +43,7 @@ def clean_timestamps(df: pd.DataFrame, column: str):
 
 
 def validate_position(gps_df: pd.DataFrame):
-    """
-    Valide les coordonnées GPS et détermine si au moins
-    une position exploitable est disponible.
-
-    Returns:
-        tuple: Le DataFrame avec les positions invalides neutralisées
-        et un booléen indiquant si une position valide existe.
-    """
+    """Neutralise les coordonnées invalides et signale les positions exploitables."""
     gps_df = gps_df.copy()
     position_available = False
 
@@ -97,14 +77,7 @@ def validate_dataset(
     valid_row_count,
     exploitable_data,
 ):
-    """
-    Vérifie qu'un dataset possède la structure minimale attendue
-    et contient au moins une donnée exploitable.
-
-    Returns:
-        tuple: Un booléen indiquant si le dataset est valide
-        et un message décrivant le résultat de la validation.
-    """
+    """Contrôle la validité structurelle et la présence de données exploitables."""
     if (
         missing_columns == []
         and valid_row_count != 0
@@ -157,10 +130,7 @@ def check_available_data(
     df: pd.DataFrame,
     optional_columns: list,
 ):
-    """
-    Vérifie qu'au moins une colonne optionnelle disponible
-    contient une valeur non nulle.
-    """
+    """Détecte au moins une mesure non nulle dans les colonnes disponibles."""
     available_columns = []
 
     for column in optional_columns:
@@ -178,17 +148,7 @@ def check_available_data(
 
 
 def extract_metadata(df: pd.DataFrame):
-    """
-    Extrait les métadonnées présentes dans les noms de colonnes
-    d'un fichier sans modifier le DataFrame.
-
-    Pour chaque variable, conserve :
-    - le nom brut de la colonne ;
-    - son unité lorsqu'elle existe ;
-    - sa source lorsqu'elle existe.
-
-    Le nom normalisé de la variable est utilisé comme clé.
-    """
+    """Extrait le nom brut, l’unité et la source de chaque variable."""
     metadata_df = {}
 
     for column in df.columns:
@@ -223,13 +183,7 @@ def extract_metadata(df: pd.DataFrame):
 
 
 def summarize_metadata(metadata: dict):
-    """
-    Regroupe les métadonnées de tous les navires par type de dataset.
-
-    Les différentes valeurs observées pour un même champ sont conservées
-    sous forme de listes afin de ne pas perdre les variantes présentes
-    entre les fichiers.
-    """
+    """Fusionne les métadonnées en préservant les variantes entre navires."""
     common_metadata = {}
 
     for vessel in metadata:
@@ -286,13 +240,7 @@ def initialize_variable_metadata(
     variable_metadata: dict,
     common_variable_metadata: dict,
     ):
-    """
-    Initialise les métadonnées communes d'une variable.
-
-    Chaque valeur observée est placée dans une liste afin de permettre
-    l'ajout ultérieur de variantes provenant d'autres fichiers.
-    Les valeurs None ne sont pas considérées comme des variantes.
-    """
+    """Initialise les listes de variantes de métadonnées d’une variable."""
     for field in variable_metadata:
         common_variable_metadata[field] = []
 

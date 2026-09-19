@@ -14,16 +14,7 @@ from .utils import (
 
 
 def load_all_data(data_path):
-    """
-    Charge tous les fichiers CSV, extrait leurs métadonnées,
-    normalise les noms de colonnes et nettoie les données.
-
-    Args:
-        data_path: Dossier contenant les fichiers CSV.
-
-    Returns:
-        tuple: Les données nettoyées et les métadonnées communes.
-    """
+    """Charge, normalise et valide les CSV et rassemble leurs métadonnées."""
     data = {}
     metadata = {}
 
@@ -68,15 +59,7 @@ def load_all_data(data_path):
 
 
 def process_gps_data(df: pd.DataFrame):
-    """
-    Nettoie et valide un dataset GPS.
-
-    Args:
-        df: DataFrame GPS à traiter.
-
-    Returns:
-        DataFrame nettoyé, ou None si le dataset n'est pas exploitable.
-    """
+    """Nettoie et valide les mesures GPS."""
     required_columns = ["Timestamp"]
     missing_columns = find_missing_columns(df, required_columns)
 
@@ -116,15 +99,7 @@ def process_gps_data(df: pd.DataFrame):
 
 
 def process_motion_macs3_data(df: pd.DataFrame):
-    """
-    Nettoie et valide un dataset MOTIONS ou MACS3.
-
-    Args:
-        df: DataFrame MOTIONS ou MACS3 à traiter.
-
-    Returns:
-        DataFrame nettoyé, ou None si le dataset n'est pas exploitable.
-    """
+    """Nettoie et valide les mesures MOTIONS ou MACS3."""
     required_columns = ["Timestamp"]
     missing_columns = find_missing_columns(df, required_columns)
 

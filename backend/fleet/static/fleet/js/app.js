@@ -48,15 +48,15 @@ async function loadVessels() {
 }
 
 
-// Conserver les variables regroupées par dataset.
-// Cette structure permet ensuite de retrouver le dataset
-// auquel appartient une variable sélectionnée.
+// Index des variables par dataset pour retrouver leur provenance.
+
+
 let variablesByType = {};
 
 
-// Conserver les métadonnées complètes des variables.
-// Elles sont notamment utilisées par les graphes pour récupérer
-// les unités, les sources et déterminer le regroupement des axes Y.
+// Métadonnées des variables : source, unité et regroupement des axes Y.
+
+
 let variablesMetadata = {};
 
 
@@ -119,18 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // -------------------- Recherche --------------------
 
-/*
- * Les informations de la recherche sont déclarées en dehors
- * du gestionnaire du bouton Find.
- *
- * Elles doivent rester accessibles après la requête afin que replay.js
- * puisse réutiliser les données retournées ainsi que les choix
- * de l'utilisateur :
- *
- * - navires sélectionnés ;
- * - période sélectionnée ;
- * - variables sélectionnées.
- */
+// Le résultat et les choix de Find restent accessibles au Replay.
 let result;
 let selectedVessels;
 let selectedStartDate;
@@ -140,8 +129,8 @@ let selectedVariables;
 
 findButton.addEventListener("click", async () => {
 
-    // Supprimer les résultats de la recherche précédente
-    // et nettoyer la carte.
+    // Effacer les résultats précédents avant une nouvelle recherche.
+
     clearMap();
 
 
@@ -196,24 +185,17 @@ findButton.addEventListener("click", async () => {
 
     // -------------------- Affichage des graphes --------------------
 
-    /*
-     * Supprimer les graphes issus de la recherche précédente.
-     *
-     * Cette opération est réalisée une seule fois ici et non dans
-     * les fonctions de charts.js, car une même recherche peut créer
-     * plusieurs canvas lorsque plusieurs variables et plusieurs
-     * navires sont sélectionnés.
-     */
+    // Nettoyer les canvas une seule fois avant de générer tous les graphes.
     chartDiv.replaceChildren();
+
+    // créer la timeline pour l'axe x:
+    xAxisTimeline = createTimeline(selectedStartDate, selectedEndDate)
 
 
     if (selectedVariables.length === 1) {
-
-        /*
-         * Une seule variable :
-         * créer un graphe contenant une courbe par navire sélectionné.
-         */
+        // Une variable : une courbe par navire.
         displayChartOneVariable(
+            xAxisTimeline,
             result,
             selectedVessels,
             selectedVariables[0],
@@ -225,15 +207,9 @@ findButton.addEventListener("click", async () => {
         selectedVariables.length > 1 &&
         selectedVessels.length === 1
     ) {
-
-        /*
-         * Plusieurs variables et un seul navire :
-         * afficher les variables sur un même graphe.
-         *
-         * Les variables compatibles peuvent partager le même axe Y
-         * selon la logique définie dans charts.js.
-         */
+        // Un navire : plusieurs variables, avec axes Y regroupés si compatibles.
         displayChartOneVessel(
+            xAxisTimeline,
             result,
             selectedVessels[0],
             selectedVariables,
@@ -245,23 +221,12 @@ findButton.addEventListener("click", async () => {
         selectedVariables.length > 1 &&
         selectedVessels.length > 1
     ) {
-
-        /*
-         * Plusieurs variables et plusieurs navires :
-         * l'utilisateur choisit la manière d'organiser les graphes.
-         *
-         * Vue "variable" :
-         *     un canvas par variable,
-         *     avec une courbe par navire.
-         *
-         * Vue "vessel" :
-         *     un canvas par navire,
-         *     avec une courbe par variable.
-         */
+        // Plusieurs navires et variables : organiser les graphes par variable ou navire.
         if (chartViewSelect.value === "variable") {
 
             selectedVariables.forEach(variable => {
                 displayChartOneVariable(
+                    xAxisTimeline,
                     result,
                     selectedVessels,
                     variable,
@@ -274,6 +239,7 @@ findButton.addEventListener("click", async () => {
 
             selectedVessels.forEach(vessel => {
                 displayChartOneVessel(
+                    xAxisTimeline,
                     result,
                     vessel,
                     selectedVariables,
@@ -289,14 +255,7 @@ findButton.addEventListener("click", async () => {
 
     let variablePilot = colorVariableSelect.value;
 
-    /*
-     * Les valeurs des inputs sont conservées sous forme de chaînes.
-     *
-     * Cela permet de distinguer :
-     *
-     * ""  -> champ vide
-     * "0" -> valeur réellement saisie par l'utilisateur
-     */
+    // Garder les chaînes pour distinguer une saisie de 0 d’un champ vide.
     let addedReferenceValue = referenceInput.value;
     let addedToleranceValue = toleranceInput.value;
 
@@ -323,29 +282,14 @@ variableOptions.addEventListener("change", () => {
         )
     ).map(checkbox => checkbox.value);
 
-    /*
-     * Vider la liste avant de la reconstruire.
-     *
-     * Sans cela, chaque événement "change"
-     * ajouterait de nouveau les mêmes variables
-     * au sélecteur de colorimétrie.
-     *
-     * Cela permet aussi de supprimer automatiquement
-     * les variables qui viennent d'être désélectionnées.
-     */
-    
+    // Reconstruire les options pour retirer aussi les variables désélectionnées.
+
     colorVariableSelect.options.length = 1;
-    
+
 
     selectedVariables.forEach(variable => {
 
-        /*
-         * Les variables MACS3 représentent des mesures
-         * ponctuelles / snapshots.
-         *
-         * Elles ne sont donc pas proposées comme variables
-         * pilotes pour colorer une trajectoire continue.
-         */
+        // MACS3 fournit des snapshots, pas une mesure pilote continue.
         if (!variablesByType["MACS3"].includes(variable)) {
             let option = document.createElement("option");
 
@@ -360,10 +304,7 @@ variableOptions.addEventListener("change", () => {
 
 // -------------------- Fermeture des menus déroulants --------------------
 
-/*
- * Fermer les menus Vessels et Variables lorsque l'utilisateur
- * clique en dehors du menu concerné.
- */
+// Fermer seulement les menus sur lesquels le clic est extérieur.
 document.addEventListener("click", event => {
 
     if (!vesselDropdown.contains(event.target)) {
@@ -378,46 +319,43 @@ document.addEventListener("click", event => {
 
 // -------------------- Replay --------------------
 
-/*
- * Timeline utilisée par le replay.
- *
- * Elle est reconstruite lorsqu'un nouveau replay est demandé
- * à partir de la période sélectionnée lors du dernier Find.
- *
- * La timeline progresse par pas réguliers de 15 minutes,
- * indépendamment des timestamps réellement présents dans les données.
- * replay.js recherche ensuite l'état disponible de chaque navire
- * pour chacun de ces instants.
- */
+// Replay : pas de 15 min sur la période choisie, indépendamment des mesures présentes.
 let replayTimeline;
 
 
 replayButton.addEventListener("click", () => {
 
-    /*
-     * Un nouveau replay doit toujours repartir du premier instant
-     * de la timeline, même si le replay précédent avait déjà avancé.
-     */
+    // Repartir du premier instant à chaque nouveau Replay.
     i = 0;
 
-    // Construire la timeline correspondant
-    // à toute la période sélectionnée.
-    replayTimeline = createReplayTimeline(
+    // Nouvelle timeline sur la période sélectionnée.
+
+    replayTimeline = createTimeline(
         selectedStartDate,
         selectedEndDate
     );
     document.body.classList.add("replay-mode");
     buildReplayTableHeader(selectedVariables, variablesByType);
-    
-    
-    
+
+
+
 });
 
 exitReplayButton.addEventListener("click",() => {
-    
+
     // revenir à l'état normale de la carte et de l'interface
     clearInterval(replayInterval);
     replayInterval = null;
+
+    replayCurentTime.textContent = initialReplayTimeText;
+    replayTableBody.replaceChildren();
+    replayTableHeader.replaceChildren();
+
+    // Restaurer la vitesse initiale du Replay.
+    replaySpeedIndex = initialReplaySpeedIndex;
+    replayDelay = initialReplayDelay
+    speedValue.textContent = initialSpeedText;
+
     let variablePilot = colorVariableSelect.value;
     let addedReferenceValue = referenceInput.value;
     let addedToleranceValue = toleranceInput.value;

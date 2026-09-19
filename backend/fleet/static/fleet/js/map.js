@@ -10,9 +10,9 @@ let vesselsMarkers = {};
 
 // -------------------- Carte --------------------
 
-// Initialiser la carte.
-// Les longitudes sont étendues au-delà de [-180, 180]
-// afin de pouvoir afficher correctement les passages de l'antiméridien.
+// Autoriser les longitudes répétées pour afficher l’antiméridien.
+
+
 let map = L.map("map", {
     minZoom: 2,
     maxBounds: [
@@ -23,8 +23,8 @@ let map = L.map("map", {
 
 map.setView([0, 0], 2);
 
-// Ajouter le fond de carte.
-// noWrap: false autorise Leaflet à répéter le fond horizontalement.
+// Répéter horizontalement les tuiles OSM.
+
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; OpenStreetMap contributors',
     noWrap: false,
@@ -69,39 +69,18 @@ function displayMap(result, selectedVessels, variablePilot,addedReferenceValue,a
 
         // -------------------- Préparation de la colorimétrie --------------------
 
-        /*
-         * Ces tableaux restent vides si aucune colorimétrie
-         * n'est demandée ou disponible.
-         *
-         * Lorsqu'ils sont remplis, leurs index restent alignés :
-         *
-         * gpsPositions[i]
-         * pilotValues[i]
-         * statuses[i]
-         *
-         * représentent tous le même instant.
-         */
+        // Positions, valeurs pilotes et statuts gardent le même index temporel.
         let pilotValues = [];
         let statuses = [];
 
         if (colorimetryRequested) {
             let pilotRows = result["response"][vessel][pilotDataset];
 
-            // Vérifier que le dataset et la variable pilote
-            // sont réellement disponibles pour ce navire.
+            // Vérifier que la variable pilote existe pour ce navire.
+
             if (pilotRows && pilotRows.length > 0 && variablePilot in pilotRows[0]) {
 
-                /*
-                 * Associer chaque position GPS à la valeur pilote
-                 * possédant exactement le même timestamp.
-                 *
-                 * Si aucune mesure n'existe pour un timestamp GPS,
-                 * on ajoute null.
-                 *
-                 * On ne supprime surtout pas l'élément :
-                 * sinon les index entre GPS et colorimétrie
-                 * seraient décalés.
-                 */
+                // Sans mesure pilote au timestamp GPS, garder un null pour préserver l’alignement.
                 gpsRows.forEach(gpsRow => {
                     let pilotRow = pilotRows.find(pilotRow => pilotRow.Timestamp === gpsRow.Timestamp);
 
@@ -138,26 +117,10 @@ function displayMap(result, selectedVessels, variablePilot,addedReferenceValue,a
 
         // -------------------- Tracé de la trajectoire --------------------
 
-        /*
-         * La trajectoire est tracée segment par segment
-         * plutôt qu'avec une seule polyline.
-         *
-         * Cela permet :
-         *
-         * 1. de corriger les passages de l'antiméridien ;
-         * 2. d'appliquer éventuellement une couleur différente
-         *    à chaque segment.
-         */
+        // Tracer segment par segment pour traiter l’antiméridien et la colorimétrie.
         for (let i = 0; i < gpsPositions.length - 1; i++) {
 
-            /*
-             * Faire une copie des deux positions.
-             *
-             * On ne modifie pas directement gpsPositions :
-             * les coordonnées originales doivent rester intactes
-             * pour les segments suivants, le cadrage de la carte
-             * et le marqueur final.
-             */
+            // Copier les positions : ne pas modifier les coordonnées GPS sources.
             let startPosition = [gpsPositions[i][0], gpsPositions[i][1]];
             let endPosition = [gpsPositions[i + 1][0], gpsPositions[i + 1][1]];
 
@@ -171,68 +134,31 @@ function displayMap(result, selectedVessels, variablePilot,addedReferenceValue,a
 
                 // -------------------- Passage de l'antiméridien --------------------
 
-                /*
-                 * Les longitudes vont normalement de -180° à +180°.
-                 *
-                 * Exemple :
-                 *
-                 * 179° -> -179°
-                 *
-                 * représente un déplacement réel d'environ 2°.
-                 *
-                 * Mais sans correction, Leaflet voit environ 358°
-                 * d'écart et trace une ligne à travers toute la carte.
-                 */
+                // Corriger un saut apparent de plus de 180° au passage de l’antiméridien.
                 let delta = endPosition[1] - startPosition[1];
 
                 if (Math.abs(delta) > 180) {
                     if (delta > 0) {
 
-                        /*
-                         * Exemple :
-                         *
-                         * -179° -> 179°
-                         *
-                         * 179° devient -181°.
-                         *
-                         * Les deux coordonnées représentent alors
-                         * deux positions voisines sur la carte répétée.
-                         */
+                        // Passage -179° → 179° : représenter 179° par -181° sur la carte répétée.
                         endPosition[1] -= 360;
 
                     } else {
 
-                        /*
-                         * Exemple :
-                         *
-                         * 179° -> -179°
-                         *
-                         * -179° devient 181°.
-                         */
+                        // Passage 179° → -179° : représenter -179° par 181°.
                         endPosition[1] += 360;
                     }
                 }
 
                 let segment = [startPosition, endPosition];
 
-                /*
-                 * La trajectoire normale est toujours tracée.
-                 *
-                 * Si aucune colorimétrie n'est disponible pour ce segment,
-                 * cette ligne restera simplement visible telle quelle.
-                 */
+                // Garder la trajectoire de base si le statut colorimétrique est absent.
                 L.polyline(segment, { color: vesselColors[vessel] }).addTo(resultLayers);
 
 
                 // -------------------- Surcouche colorimétrique --------------------
 
-                /*
-                 * La couleur du segment dépend du statut
-                 * mesuré au début du segment : statuses[i].
-                 *
-                 * Si statuses[i] vaut null ou n'existe pas,
-                 * aucune couleur n'est ajoutée par-dessus.
-                 */
+                // Appliquer au segment le statut du point de départ, si disponible.
                 if (statuses[i] !== undefined && statuses[i] !== null) {
                     let segmentColor;
 
@@ -252,8 +178,8 @@ function displayMap(result, selectedVessels, variablePilot,addedReferenceValue,a
 
         // -------------------- Fin du tracé du navire --------------------
 
-        // Conserver les coordonnées GPS originales
-        // afin d'adapter ensuite le cadrage de la carte.
+        // Cadrer la carte sur les coordonnées GPS d’origine valides.
+
         for (let i = 0; i < gpsPositions.length; i++) {
             if (gpsPositions[i][0] !== null && gpsPositions[i][1] !== null) {
                 allPositions.push(gpsPositions[i]);
@@ -285,23 +211,17 @@ function displayMap(result, selectedVessels, variablePilot,addedReferenceValue,a
             iconAnchor: [6, 21]
         });
 
-        /*
-        * Associer chaque navire à son marqueur Leaflet.
-        *
-        * Le marqueur est créé pendant l'affichage des résultats du Find,
-        * puis réutilisé par replay.js afin de représenter la position
-        * du navire à l'instant courant du replay.
-        */
+        // Conserver le marqueur final du navire pour le déplacer pendant le Replay.
         L.marker(firstPosition, { icon: departureIcon }).addTo(resultLayers);
 
 
-        // Ajouter un marqueur sur la dernière position connue.
-        // Ce même marqueur est ensuite réutilisé pendant le replay
-        // pour représenter la position du navire à l'instant courant.
+        // Réutiliser le marqueur final comme position courante en Replay.
+
+
         let lastPosition = gpsPositions[gpsPositions.length - 1];
 
-        // Remplacer le marqueur Leaflet par défaut par une icône de navire personnalisée
-        // afin de pouvoir reprendre la couleur associée au navire.
+        // Utiliser une icône de navire avec sa couleur propre.
+
         let vesselIcon = L.divIcon({
             html: `
                 <svg viewBox="0 0 24 24" width="30" height="30">

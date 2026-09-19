@@ -3,10 +3,10 @@
 let chartDiv = document.getElementById("charts");
 let chartOverlay = document.getElementById("chart-overlay")
 
-
 // -------------------- Graphe : une variable --------------------
 
 function displayChartOneVariable(
+    xAxisTimeline,
     result,
     selectedVessels,
     selectedVariable,
@@ -42,18 +42,10 @@ function displayChartOneVariable(
 
     selectedVessels.forEach(vessel => {
 
-        let chartPoints = [];
+        let rows= result["response"][vessel][variableDataset];
+        let chartPoints = buildChartPoints(rows, variableDataset, selectedVariable, xAxisTimeline)
 
-        result["response"][vessel][variableDataset].forEach(row => {
 
-            let x = row.Timestamp;
-            let y = row[selectedVariable];
-
-            chartPoints.push({
-                "x": x,
-                "y": y
-            });
-        });
 
         chartDatasets.push({
             label: vessel,
@@ -63,24 +55,14 @@ function displayChartOneVariable(
     });
 
 
-    // Construire les données du graphe au format attendu
-    // par la bibliothèque Chart.js.
+    // Préparer les données pour Chart.js.
+
     let chartData = {
         datasets: chartDatasets
     };
 
 
-    /*
-     * L'axe X utilise une échelle temporelle.
-     *
-     * Chaque point possède son propre Timestamp :
-     * Chart.js conserve donc les écarts temporels réels
-     * entre les mesures au lieu de répartir les points
-     * uniformément sur l'axe.
-     *
-     * Les graduations affichées sont prises parmi les
-     * timestamps réellement présents dans les données.
-     */
+    // Échelle temporelle : conserver les intervalles réels et les ticks issus des données.
     let chartConfig = {
         type: "line",
         data: chartData,
@@ -92,7 +74,11 @@ function displayChartOneVariable(
                     ticks: {
                         source: "data",
                         autoSkip: true,
-                        maxTicksLimit: 10
+                        maxTicksLimit: 10,
+
+                        callback: function(value) {
+                            return formatUtcTick(value, this._unit);
+                        }
                     }
                 },
                 y: {
@@ -102,22 +88,32 @@ function displayChartOneVariable(
                         text: yAxisTitle
                     }
                 }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(items) {
+                            return formatUtcTooltip(items[0].parsed.x);
+                        }
+                    }
+                }
             }
         }
     };
 
 
-    // Créer un canvas pour ce graphe puis demander
-    // à Chart.js d'y effectuer le rendu.
+    // Construire le canvas et afficher le graphe.
+
     createChart(chartConfig)
 
-    
+
 }
 
 
 // -------------------- Graphe : un navire --------------------
 
 function displayChartOneVessel(
+    xAxisTimeline,
     result,
     selectedVessel,
     selectedVariables,
@@ -137,30 +133,17 @@ function displayChartOneVessel(
             ticks: {
                 source: "data",
                 autoSkip: true,
-                maxTicksLimit: 10
+                maxTicksLimit: 10,
+
+                callback: function(value) {
+                    return formatUtcTick(value, this._unit);
+                }
             }
         }
     };
 
 
-    /*
-     * axisGroup mémorise l'association entre :
-     *
-     * - un groupe de variables compatibles ;
-     * - l'identifiant de l'axe Y utilisé par Chart.js ;
-     * - les variables déjà associées à cet axe.
-     *
-     * Exemple :
-     *
-     * "GPS-deg" -> {
-     *     axisID: "y0",
-     *     variables: ["Course", "Heading"]
-     * }
-     *
-     * Course et Heading peuvent ainsi utiliser le même axe Y,
-     * au lieu de créer systématiquement un nouvel axe
-     * pour chaque variable.
-     */
+    // Un axisID par groupe de variables compatibles ; partager l’axe Y si possible.
     let axisGroup = {};
     let i = 0;
 
@@ -178,26 +161,13 @@ function displayChartOneVessel(
 
 
         // Construire les points de la courbe de la variable.
-        let chartPoints = [];
 
-        result["response"][selectedVessel][variableDataset].forEach(row => {
+        let rows = result["response"][selectedVessel][variableDataset]
 
-            let x = row.Timestamp;
-            let y = row[variable];
-
-            chartPoints.push({
-                "x": x,
-                "y": y
-            });
-        });
+        let chartPoints = buildChartPoints(rows , variableDataset, variable, xAxisTimeline)
 
 
-        /*
-         * Déterminer le groupe d'axe de la variable.
-         *
-         * Les variables partageant le même groupe réutilisent
-         * le même axe Y.
-         */
+        // Réutiliser l’axe Y du groupe lorsque les variables sont compatibles.
         let variableGroup = getVariableAxisGroup(
             variable,
             variablesMetadata,
@@ -205,8 +175,8 @@ function displayChartOneVessel(
         );
 
 
-        // Créer un nouvel axe uniquement si aucun axe
-        // n'existe encore pour ce groupe.
+        // Créer l’axe Y seulement si son groupe est nouveau.
+
         if (!(variableGroup in axisGroup)) {
 
             axisGroup[variableGroup] = {
@@ -218,20 +188,13 @@ function displayChartOneVessel(
 
         } else {
 
-            // Le groupe existe déjà :
-            // ajouter la variable à la liste associée au même axe.
+            // Compléter la liste des variables partageant cet axe.
+
             axisGroup[variableGroup]["variables"].push(variable);
         }
 
 
-        /*
-         * Le titre de l'axe reprend les variables qui partagent
-         * réellement cet axe.
-         *
-         * Exemple :
-         *
-         * Course / Heading (deg)
-         */
+        // Le titre d’axe liste toutes les variables du groupe et leur unité.
         let yAxisText =
             axisGroup[variableGroup]["variables"].join(" / ");
 
@@ -247,8 +210,8 @@ function displayChartOneVessel(
         }
 
 
-        // Ajouter la courbe et l'associer explicitement
-        // à l'axe Y de son groupe.
+        // Associer la courbe à l’axe Y de son groupe.
+
         chartData["datasets"].push({
             label: `${selectedVessel} - ${variable}`,
             data: chartPoints,
@@ -256,13 +219,7 @@ function displayChartOneVessel(
         });
 
 
-        /*
-         * Créer ou mettre à jour la configuration de l'axe.
-         *
-         * Lorsqu'une nouvelle variable rejoint un groupe existant,
-         * le même axisID est réutilisé et son titre est mis à jour
-         * avec l'ensemble des variables du groupe.
-         */
+        // Mettre à jour l’axe Y commun et son titre après chaque nouvelle variable.
         variablesScales[axisGroup[variableGroup]["axisID"]] = {
             position: "left",
             title: {
@@ -279,7 +236,16 @@ function displayChartOneVessel(
         data: chartData,
         options: {
             maintainAspectRatio: false,
-            scales: variablesScales
+            scales: variablesScales,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(items) {
+                            return formatUtcTooltip(items[0].parsed.x);
+                        }
+                    }
+                }
+            }
         }
     };
 
@@ -311,18 +277,7 @@ function getVariableAxisGroup(
                 variablesMetadata[type][variable]["source"];
 
 
-            /*
-             * Règle de regroupement retenue pour le prototype :
-             *
-             * 1. dataset + unité lorsque l'unité existe ;
-             * 2. dataset + source lorsque la variable n'a pas d'unité ;
-             * 3. dataset + nom de variable en dernier recours.
-             *
-             * Le dataset reste dans la clé afin de ne pas regrouper
-             * automatiquement des grandeurs provenant de familles
-             * de données différentes uniquement parce qu'elles
-             * utilisent la même unité.
-             */
+            // Axes Y : regrouper par dataset + unité, sinon source, sinon nom de variable.
             if (variableUnits.length !== 0) {
 
                 groupName = `${type}-${variableUnits[0]}`;
@@ -375,4 +330,51 @@ function createChart(chartConfig) {
         chartContainer.classList.remove("expanded");
         chartOverlay.style.display = "none";
     });
+}
+function buildChartPoints(rows, variableDataset, selectedVariable, xAxisTimeline){
+
+    let chartPoints = [];
+    let j = 0;
+
+    if (variableDataset === "GPS" || variableDataset === "MOTIONS"){
+        // GPS/MOTIONS : insérer y=null aux timestamps manquants de la timeline régulière.
+
+
+
+
+
+
+        for (let i = 0 ; i < xAxisTimeline.length ; i++) {
+            let x =  xAxisTimeline[i];
+            let y = null
+            if (j < rows.length && xAxisTimeline[i].getTime() === new Date(rows[j].Timestamp + "Z").getTime()){
+                console.log(
+                    "timeline:", xAxisTimeline[i],
+                    "row:", rows[j].Timestamp,
+                    "i:", i,
+                    "j:", j)
+                y = rows[j][selectedVariable];
+                j++;
+            }
+            chartPoints.push({
+                    "x": x,
+                    "y": y
+                });
+        };
+        console.log(j , chartPoints[j], chartPoints[j+1])
+    }else { // Pour les MACS3 on garde les timestamps irréguliers du dataset
+        // Construire les points de la courbe de la variable.
+
+        rows.forEach(row => {
+
+            let x = row.Timestamp;
+            let y = row[selectedVariable];
+
+            chartPoints.push({
+                "x": x,
+                "y": y
+            });
+        });
+    }
+    return chartPoints
 }
