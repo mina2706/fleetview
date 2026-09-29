@@ -79,6 +79,11 @@ The backend provides three JSON endpoints:
 
 The prototype reads vessel measurements from CSV files. Django's local SQLite database is used for its standard framework components; vessel measurements are not stored in SQLite.
 
+## Documentation
+
+- [Technical documentation](docs/technical-documentation.md) — detailed architecture and implementation of the FleetView prototype.
+- [Data architecture](docs/data-architecture.md) — proposed persistent storage model for vessel and worldwide weather data.
+
 ## Run locally
 
 ### Prerequisites
